@@ -501,7 +501,7 @@ export function getImagesForSection(sectionTitle: string): TestimonyImage[] {
     .replace(/\s+/g, " ")
     .trim();
 
-  return ALL_IMAGES.map((filename) => {
+  const images = ALL_IMAGES.map((filename) => {
     const parsed = parseImageFilename(filename);
     if (!parsed) return null;
 
@@ -526,7 +526,9 @@ export function getImagesForSection(sectionTitle: string): TestimonyImage[] {
       height: 400,
     };
   })
-    .filter((img): img is TestimonyImage => img !== null)
+    .filter((img) => img !== null) as TestimonyImage[];
+  
+  return images
     .sort((a, b) => {
       const aPage = parseImageFilename(a.src.split("/").pop() || "");
       const bPage = parseImageFilename(b.src.split("/").pop() || "");

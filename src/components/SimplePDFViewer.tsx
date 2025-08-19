@@ -95,10 +95,6 @@ export default function SimplePDFViewer({ file }: SimplePDFViewerProps) {
       opacity: 1,
       scale: 1,
       transformOrigin: "center",
-      transition: {
-        duration: 0.6,
-        ease: [0.25, 0.46, 0.45, 0.94], // Custom ease for smooth animation
-      },
     },
     exit: (direction: "forward" | "backward") => ({
       rotateY: direction === "forward" ? 90 : -90,
@@ -106,10 +102,6 @@ export default function SimplePDFViewer({ file }: SimplePDFViewerProps) {
       opacity: 0,
       scale: 0.9,
       transformOrigin: direction === "forward" ? "left" : "right",
-      transition: {
-        duration: 0.4,
-        ease: [0.25, 0.46, 0.45, 0.94],
-      },
     }),
   };
 

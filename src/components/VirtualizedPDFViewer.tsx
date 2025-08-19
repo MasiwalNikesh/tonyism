@@ -15,9 +15,6 @@ const Page = dynamic(
 );
 
 if (typeof window !== 'undefined') {
-  import('react-pdf/dist/Page/AnnotationLayer.css');
-  import('react-pdf/dist/Page/TextLayer.css');
-  
   import('pdfjs-dist').then((pdfjs) => {
     pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.js`;
   });
@@ -52,7 +49,9 @@ function PageItem({ index, style, data }: PageItemProps) {
       
       if (newCache.size > CACHE_SIZE) {
         const firstKey = newCache.keys().next().value;
-        newCache.delete(firstKey);
+        if (firstKey !== undefined) {
+          newCache.delete(firstKey);
+        }
       }
       
       return newCache;
@@ -211,6 +210,7 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
           <List
             ref={listRef}
             height={window.innerHeight - 120}
+            width="100%"
             itemCount={numPages}
             itemSize={ITEM_HEIGHT * scale}
             itemData={itemData}

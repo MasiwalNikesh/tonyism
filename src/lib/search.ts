@@ -24,7 +24,7 @@ export interface SearchResult {
   item: Testimony;
   score?: number;
   matches?: Array<{
-    indices: Array<[number, number]>;
+    indices: readonly [number, number][];
     key?: string;
     refIndex?: number;
     value?: string;
@@ -185,7 +185,7 @@ export const testimonySearch = new TestimonySearch();
 export function highlightMatches(
   text: string,
   matches?: Array<{
-    indices: Array<[number, number]>;
+    indices: readonly [number, number][];
     key?: string;
     refIndex?: number;
     value?: string;

@@ -10,7 +10,12 @@ import Image from "next/image";
 
 interface TestimonyCardProps {
   testimony: Testimony;
-  matches?: Array<{ title: number; content: number; author: number; relationship: number }>;
+  matches?: Array<{
+    indices: readonly [number, number][];
+    key?: string;
+    refIndex?: number;
+    value?: string;
+  }>;
   index?: number;
   variant?: "default" | "compact" | "featured";
   showImage?: boolean;
