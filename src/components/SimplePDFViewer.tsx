@@ -19,10 +19,6 @@ let workerConfigured = false;
 const configureWorker = async () => {
   if (typeof window !== "undefined" && !workerConfigured) {
     try {
-      // Import CSS for PDF rendering
-      await import("react-pdf/dist/Page/AnnotationLayer.css");
-      await import("react-pdf/dist/Page/TextLayer.css");
-
       // Configure PDF.js worker
       const { pdfjs } = await import("react-pdf");
       pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
