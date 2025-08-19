@@ -27,20 +27,12 @@ export default function PageTurner({
       rotateY: 0,
       x: 0,
       opacity: 1,
-      transition: {
-        duration: 0.8,
-        ease: "easeInOut",
-      },
     },
     exit: (direction: "forward" | "backward") => ({
       rotateY: direction === "forward" ? 180 : -180,
       x: direction === "forward" ? 20 : -20,
       opacity: 0,
       transformOrigin: direction === "forward" ? "right" : "left",
-      transition: {
-        duration: 0.6,
-        ease: "easeInOut",
-      },
     }),
   };
 
@@ -55,19 +47,11 @@ export default function PageTurner({
       rotateY: direction === "forward" ? 90 : -90,
       x: direction === "forward" ? 10 : -10,
       opacity: 1,
-      transition: {
-        duration: 0.4,
-        ease: "easeInOut",
-      },
     },
     exit: {
       rotateY: direction === "forward" ? 180 : -180,
       x: direction === "forward" ? 20 : -20,
       opacity: 0,
-      transition: {
-        duration: 0.4,
-        ease: "easeInOut",
-      },
     },
   };
 

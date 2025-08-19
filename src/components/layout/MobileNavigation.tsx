@@ -86,7 +86,7 @@ export default function MobileNavigation() {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href || 
-                (item.href !== "/" && pathname.startsWith(item.href));
+                (item.href !== "/" && pathname?.startsWith(item.href));
 
               return (
                 <Link
@@ -145,7 +145,7 @@ export default function MobileNavigation() {
                 {navItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = pathname === item.href || 
-                    (item.href !== "/" && pathname.startsWith(item.href));
+                    (item.href !== "/" && pathname?.startsWith(item.href));
 
                   return (
                     <Link

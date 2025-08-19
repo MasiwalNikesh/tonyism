@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const OPENAI_API_KEY = "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";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
 
 export async function POST(req: NextRequest) {
   try {
-
     const { messages } = await req.json();
     const openaiRes = await fetch(
       "https://api.openai.com/v1/chat/completions",

@@ -8,10 +8,9 @@ import { testimonySearch } from "@/lib/search";
 export default function RecipesPage() {
   const allTestimonies = testimonySearch.getAllTestimonies();
 
-  // Filter testimonies that are recipes (category: "recipes")
+  // Filter testimonies that are recipes (based on id and content keywords)
   const recipes = allTestimonies.filter(
     (testimony) =>
-      testimony.category === "recipes" ||
       testimony.id.includes("recipe") ||
       testimony.id.includes("kitchen") ||
       testimony.id.includes("food") ||
@@ -20,7 +19,11 @@ export default function RecipesPage() {
       testimony.id.includes("laddu") ||
       testimony.id.includes("barfi") ||
       testimony.id.includes("bharta") ||
-      testimony.id.includes("kadhi")
+      testimony.id.includes("kadhi") ||
+      testimony.title.toLowerCase().includes("recipe") ||
+      testimony.title.toLowerCase().includes("food") ||
+      testimony.content.toLowerCase().includes("recipe") ||
+      testimony.content.toLowerCase().includes("cooking")
   );
 
   return (
@@ -149,7 +152,7 @@ export default function RecipesPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.8, duration: 0.8 }}
-          className="flex justify-center space-x-4 mt-12"
+          className="flex justify-center flex-wrap gap-4 mt-12"
         >
           <Link href="/testimonies">
             <motion.button
@@ -167,6 +170,15 @@ export default function RecipesPage() {
               className="px-6 py-3 bg-purple-600 text-white font-serif rounded-lg shadow-lg hover:bg-purple-700 transition-colors"
             >
               Children&apos;s Stories
+            </motion.button>
+          </Link>
+          <Link href="/ngo">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="px-6 py-3 bg-blue-600 text-white font-serif rounded-lg shadow-lg hover:bg-blue-700 transition-colors"
+            >
+              Tony&apos;s NGO Legacy
             </motion.button>
           </Link>
         </motion.div>

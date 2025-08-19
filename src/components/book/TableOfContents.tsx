@@ -143,7 +143,7 @@ export default function TableOfContents({
                               onClick={(e) => {
                                 e.preventDefault();
                                 e.stopPropagation();
-                                window.open(`/magazine?page=${chapter.magazinePages.startPage}`, '_blank');
+                                window.open(`/magazine?page=${chapter.magazinePages?.startPage}`, '_blank');
                               }}
                               className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors"
                             >

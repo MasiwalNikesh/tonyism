@@ -11,7 +11,6 @@ export default function StoriesPage() {
   // Filter testimonies that are children's stories, poems, or from children
   const childrenStories = allTestimonies.filter(
     (testimony) =>
-      testimony.category === "children" ||
       testimony.id.includes("elephant-king") ||
       testimony.id.includes("tiny-section") ||
       testimony.id.includes("nana") ||
@@ -22,7 +21,12 @@ export default function StoriesPage() {
       testimony.id.includes("aaradhya") ||
       testimony.id.includes("khushi") ||
       testimony.id.includes("suhaani") ||
-      testimony.id.includes("eshika")
+      testimony.id.includes("eshika") ||
+      testimony.title.toLowerCase().includes("child") ||
+      testimony.title.toLowerCase().includes("story") ||
+      testimony.content.toLowerCase().includes("elephant") ||
+      testimony.relationship.toLowerCase().includes("granddaughter") ||
+      testimony.relationship.toLowerCase().includes("grandson")
   );
 
   // Featured story (Elephant King)

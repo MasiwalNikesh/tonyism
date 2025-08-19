@@ -15,9 +15,6 @@ const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
 
 // Configure PDF.js worker
 if (typeof window !== "undefined") {
-  import("react-pdf/dist/Page/AnnotationLayer.css");
-  import("react-pdf/dist/Page/TextLayer.css");
-
   pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.js`;
 }
 
@@ -69,7 +66,8 @@ export default function InteractivePDFViewer({
         if (outline) {
           const tocItems: TOCItem[] = [];
           const processOutlineItem = (
-            item: pdfjs.PDFDocumentOutline,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            item: any,
             level: number = 0
           ) => {
             if (item.dest) {
@@ -91,13 +89,15 @@ export default function InteractivePDFViewer({
             }
 
             if (item.items && item.items.length > 0) {
-              item.items.forEach((subItem: pdfjs.PDFDocumentOutline) =>
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              item.items.forEach((subItem: any) =>
                 processOutlineItem(subItem, level + 1)
               );
             }
           };
 
-          outline.forEach((item: pdfjs.PDFDocumentOutline) =>
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          outline.forEach((item: any) =>
             processOutlineItem(item)
           );
           setTOC(tocItems);
@@ -138,7 +138,8 @@ export default function InteractivePDFViewer({
         const page = await pdfDocument.getPage(pageNum);
         const textContent = await page.getTextContent();
         const text = textContent.items
-          .map((item: { str: string }) => item.str)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .map((item: any) => ('str' in item ? item.str : ''))
           .join(" ");
 
         setPageTexts((prev) => new Map(prev.set(pageNum, text)));
