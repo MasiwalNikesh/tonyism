@@ -3,11 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import {
-  fetchOpenAIChat,
-  getRandomMemory,
-  getRandomPhilosophy,
-} from "@/lib/chatgpt";
+import { fetchOpenAIChat } from "@/lib/chatgpt";
 import { cn } from "@/lib/utils";
 
 interface ChatMessage {
@@ -77,16 +73,6 @@ export default function ChatPage() {
     }
   };
 
-  const getRandomInsight = () => {
-    const insights = [
-      getRandomMemory(),
-      getRandomPhilosophy(),
-      "Tony believed that every person has the power to make a difference in the world.",
-      "He often said that true leadership is about serving others and creating opportunities for growth.",
-      "Family was everything to Tony - he believed it was the cornerstone of a meaningful life.",
-    ];
-    return insights[Math.floor(Math.random() * insights.length)];
-  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 p-4">
@@ -221,56 +207,6 @@ export default function ChatPage() {
           </div>
         </motion.div>
 
-        {/* Quick Insights */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.8 }}
-          className="mt-8 p-6 bg-white rounded-lg shadow-lg border border-amber-200"
-        >
-          <h3 className="text-xl font-serif font-semibold text-amber-800 mb-4">
-            Random Insight from Tony
-          </h3>
-          <motion.p
-            key={Date.now()}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-lg text-amber-700 font-serif italic"
-          >
-            &ldquo;{getRandomInsight()}&rdquo;
-          </motion.p>
-        </motion.div>
-
-        {/* Suggested Questions */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1, duration: 0.8 }}
-          className="mt-8 p-6 bg-white rounded-lg shadow-lg border border-amber-200"
-        >
-          <h3 className="text-xl font-serif font-semibold text-amber-800 mb-4">
-            Suggested Questions
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {[
-              "Tell me about TONY-ism and what it means",
-              "What is 'Jadoo Ki Jhuppy' and why was it special?",
-              "How can I practice 'Bina shart prem' in my life?",
-              "What does 'Jahi Vidhi Rakhe Ram, Tahi Vidhi Rahiye' mean?",
-              "How did Tony Ji show unconditional love to everyone?",
-              "What can I learn from Tony Ji about being there for family?",
-            ].map((question, index) => (
-              <motion.button
-                key={index}
-                onClick={() => setInputValue(question)}
-                whileHover={{ scale: 1.02 }}
-                className="p-3 text-left bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors font-serif text-amber-700"
-              >
-                {question}
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
       </div>
     </div>
   );

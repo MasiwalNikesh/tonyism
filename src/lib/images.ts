@@ -808,10 +808,20 @@ export function getTestimonyImagesByPageRange(
 ): TestimonyImage[] {
   const galleryImages: TestimonyImage[] = [];
 
-  // First try to get page range from content.md mappings
-  let pageRange = STORY_PAGE_MAPPINGS[testimony.id];
+  // First check if testimony has explicit page range
+  let pageRange: number[] = [];
+  
+  if (testimony.pageRange) {
+    // Use explicit page range from testimony
+    for (let page = testimony.pageRange.start; page <= testimony.pageRange.end; page++) {
+      pageRange.push(page);
+    }
+  } else {
+    // Try to get page range from content.md mappings
+    pageRange = STORY_PAGE_MAPPINGS[testimony.id] || [];
+  }
 
-  if (!pageRange && testimony.page) {
+  if (pageRange.length === 0 && testimony.page) {
     // Fallback to single page from testimony data
     pageRange = [testimony.page];
   }
@@ -844,8 +854,38 @@ export function getTestimonyImageSources(testimony: Testimony): {
   profileImage: string;
   galleryImages: TestimonyImage[];
 } {
-  // First try to get images by page number if available
-  let galleryImages = getTestimonyImagesByPageRange(testimony);
+  // First check if testimony has images from CMS
+  let galleryImages: TestimonyImage[] = [];
+  
+  // Check if testimony has images array (from CMS)
+  if (testimony.images && testimony.images.length > 0) {
+    galleryImages = testimony.images.map((imagePath, index) => {
+      // Use custom caption if available, otherwise generate default
+      let caption = testimony.imagesCaptions?.[imagePath];
+      if (!caption) {
+        // Parse filename to extract page number for default caption
+        const filename = imagePath.split('/').pop() || '';
+        const match = filename.match(/^(\d+)_/);
+        const pageNum = match ? parseInt(match[1]) : testimony.page;
+        caption = `From page ${pageNum} of the magazine`;
+      }
+      
+      return {
+        id: `${testimony.id}-cms-${index}`,
+        testimonyId: testimony.id,
+        src: imagePath,
+        alt: `${testimony.title} - Image ${index + 1}`,
+        caption,
+        width: 600,
+        height: 400,
+      };
+    });
+  }
+  
+  // If no CMS images, try to get images by page number if available
+  if (galleryImages.length === 0) {
+    galleryImages = getTestimonyImagesByPageRange(testimony);
+  }
 
   // If no page images found, fall back to the old mapping system
   if (galleryImages.length === 0) {

@@ -33,8 +33,6 @@ A beautiful memorial website celebrating the life, wisdom, and legacy of Tony Ba
 
 - **AI-Powered Responses**: Chat with Tony's wisdom and philosophy
 - **Contextual Responses**: Intelligent responses based on Tony's teachings
-- **Suggested Questions**: Pre-written questions to get started
-- **Random Insights**: Daily wisdom and memories
 
 ### 🎨 Design & UX
 

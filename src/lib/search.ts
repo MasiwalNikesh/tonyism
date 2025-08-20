@@ -11,6 +11,12 @@ export interface Testimony {
   category: "family" | "elders" | "friends" | "colleagues";
   tags: string[];
   chapter: string;
+  images?: string[]; // Array of image paths from CMS
+  pageRange?: {
+    start: number;
+    end: number;
+  };
+  imagesCaptions?: { [imagePath: string]: string }; // Custom captions for images
 }
 
 export interface SearchFilters {

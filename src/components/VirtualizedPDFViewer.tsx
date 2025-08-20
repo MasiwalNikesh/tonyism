@@ -15,7 +15,7 @@ const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
 
 if (typeof window !== "undefined") {
   import("pdfjs-dist").then((pdfjs) => {
-    (pdfjs.GlobalWorkerOptions as any).workerSrc = false;
+    (pdfjs.GlobalWorkerOptions as { workerSrc: boolean | string }).workerSrc = false;
   });
 }
 

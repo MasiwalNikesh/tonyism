@@ -124,10 +124,3 @@ export async function fetchOpenAIChat(
   return data.result;
 }
 
-export function getRandomMemory(): string {
-  return "Tony had a remarkable ability to connect with people from all walks of life.";
-}
-
-export function getRandomPhilosophy(): string {
-  return "Every person has the power to make a difference.";
-}
