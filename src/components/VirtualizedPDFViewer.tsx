@@ -1,22 +1,21 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import dynamic from 'next/dynamic';
-import { FixedSizeList as List } from 'react-window';
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import dynamic from "next/dynamic";
+import { FixedSizeList as List } from "react-window";
 
 const Document = dynamic(
-  () => import('react-pdf').then((mod) => mod.Document),
+  () => import("react-pdf").then((mod) => mod.Document),
   { ssr: false }
 );
 
-const Page = dynamic(
-  () => import('react-pdf').then((mod) => mod.Page),
-  { ssr: false }
-);
+const Page = dynamic(() => import("react-pdf").then((mod) => mod.Page), {
+  ssr: false,
+});
 
-if (typeof window !== 'undefined') {
-  import('pdfjs-dist').then((pdfjs) => {
-    pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/legacy/build/pdf.worker.min.js`;
+if (typeof window !== "undefined") {
+  import("pdfjs-dist").then((pdfjs) => {
+    (pdfjs.GlobalWorkerOptions as any).workerSrc = false;
   });
 }
 
@@ -43,17 +42,17 @@ function PageItem({ index, style, data }: PageItemProps) {
   const { scale, setPageCache } = data;
 
   const handlePageLoadSuccess = useCallback(() => {
-    setPageCache(prev => {
+    setPageCache((prev) => {
       const newCache = new Map(prev);
       newCache.set(pageNumber, true);
-      
+
       if (newCache.size > CACHE_SIZE) {
         const firstKey = newCache.keys().next().value;
         if (firstKey !== undefined) {
           newCache.delete(firstKey);
         }
       }
-      
+
       return newCache;
     });
   }, [pageNumber, setPageCache]);
@@ -67,12 +66,16 @@ function PageItem({ index, style, data }: PageItemProps) {
           onLoadSuccess={handlePageLoadSuccess}
           loading={
             <div className="flex items-center justify-center h-96 w-96 bg-gray-100">
-              <div className="text-sm text-gray-500">Loading page {pageNumber}...</div>
+              <div className="text-sm text-gray-500">
+                Loading page {pageNumber}...
+              </div>
             </div>
           }
           error={
             <div className="flex items-center justify-center h-96 w-96 bg-red-50">
-              <div className="text-sm text-red-500">Failed to load page {pageNumber}</div>
+              <div className="text-sm text-red-500">
+                Failed to load page {pageNumber}
+              </div>
             </div>
           }
         />
@@ -81,7 +84,9 @@ function PageItem({ index, style, data }: PageItemProps) {
   );
 }
 
-export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps) {
+export default function VirtualizedPDFViewer({
+  file,
+}: VirtualizedPDFViewerProps) {
   const [numPages, setNumPages] = useState<number>(0);
   const [isClient, setIsClient] = useState(false);
   const [scale, setScale] = useState(1.0);
@@ -94,18 +99,21 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
     setIsClient(true);
   }, []);
 
-  const onDocumentLoadSuccess = useCallback(({ numPages }: { numPages: number }) => {
-    console.log(`PDF loaded successfully with ${numPages} pages`);
-    setNumPages(numPages);
-    setIsLoading(false);
-  }, []);
+  const onDocumentLoadSuccess = useCallback(
+    ({ numPages }: { numPages: number }) => {
+      console.log(`PDF loaded successfully with ${numPages} pages`);
+      setNumPages(numPages);
+      setIsLoading(false);
+    },
+    []
+  );
 
   const onDocumentLoadError = useCallback((error: Error) => {
-    console.error('Error loading PDF:', error);
-    console.error('Error details:', {
+    console.error("Error loading PDF:", error);
+    console.error("Error details:", {
       message: error.message,
       stack: error.stack,
-      name: error.name
+      name: error.name,
     });
     setIsLoading(false);
   }, []);
@@ -115,24 +123,33 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
     setPageCache(new Map());
   }, []);
 
-  const scrollToPage = useCallback((pageNumber: number) => {
-    if (listRef.current && pageNumber >= 1 && pageNumber <= numPages) {
-      listRef.current.scrollToItem(pageNumber - 1, 'start');
-      setCurrentPage(pageNumber);
-    }
-  }, [numPages]);
+  const scrollToPage = useCallback(
+    (pageNumber: number) => {
+      if (listRef.current && pageNumber >= 1 && pageNumber <= numPages) {
+        listRef.current.scrollToItem(pageNumber - 1, "start");
+        setCurrentPage(pageNumber);
+      }
+    },
+    [numPages]
+  );
 
-  const handleScroll = useCallback(({ scrollOffset }: { scrollOffset: number }) => {
-    const page = Math.floor(scrollOffset / ITEM_HEIGHT) + 1;
-    setCurrentPage(Math.max(1, Math.min(page, numPages)));
-  }, [numPages]);
+  const handleScroll = useCallback(
+    ({ scrollOffset }: { scrollOffset: number }) => {
+      const page = Math.floor(scrollOffset / ITEM_HEIGHT) + 1;
+      setCurrentPage(Math.max(1, Math.min(page, numPages)));
+    },
+    [numPages]
+  );
 
-  const itemData = useMemo(() => ({
-    numPages,
-    scale,
-    pageCache,
-    setPageCache
-  }), [numPages, scale, pageCache]);
+  const itemData = useMemo(
+    () => ({
+      numPages,
+      scale,
+      pageCache,
+      setPageCache,
+    }),
+    [numPages, scale, pageCache]
+  );
 
   if (!isClient) {
     return (
@@ -142,7 +159,12 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
     );
   }
 
-  console.log('VirtualizedPDFViewer render:', { isClient, numPages, isLoading, file });
+  console.log("VirtualizedPDFViewer render:", {
+    isClient,
+    numPages,
+    isLoading,
+    file,
+  });
 
   return (
     <div className="flex flex-col h-screen">
@@ -155,25 +177,23 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
           </div>
         </div>
       )}
-      
+
       <Document
         file={file}
         onLoadSuccess={onDocumentLoadSuccess}
         onLoadError={onDocumentLoadError}
         loading={<div className="p-4 text-center">Initializing PDF...</div>}
-        options={{
-          cMapUrl: 'https://unpkg.com/pdfjs-dist@3.11.174/cmaps/',
-          cMapPacked: true,
-        }}
       >
         <div className="flex items-center justify-between p-4 bg-gray-100 border-b">
           <div className="flex items-center gap-4">
             <span className="text-sm font-medium">
-              {isLoading ? 'Loading...' : `Page ${currentPage} of ${numPages}`}
+              {isLoading ? "Loading..." : `Page ${currentPage} of ${numPages}`}
             </span>
-            
+
             <div className="flex items-center gap-2">
-              <label htmlFor="page-input" className="text-sm">Go to page:</label>
+              <label htmlFor="page-input" className="text-sm">
+                Go to page:
+              </label>
               <input
                 id="page-input"
                 type="number"
@@ -188,7 +208,7 @@ export default function VirtualizedPDFViewer({ file }: VirtualizedPDFViewerProps
               />
             </div>
           </div>
-          
+
           <div className="flex items-center gap-2">
             <span className="text-sm">Scale:</span>
             <select

@@ -42,6 +42,13 @@ const navItems: NavItem[] = [
     description: "Stories from loved ones"
   },
   {
+    href: "/chapters",
+    label: "Chapters",
+    icon: BookOpen,
+    color: "blue",
+    description: "Life in chapters"
+  },
+  {
     href: "/recipes",
     label: "Recipes",
     icon: ChefHat,
@@ -54,13 +61,6 @@ const navItems: NavItem[] = [
     icon: Baby,
     color: "purple",
     description: "Children's stories & poems"
-  },
-  {
-    href: "/chapters",
-    label: "Chapters",
-    icon: BookOpen,
-    color: "blue",
-    description: "Life in chapters"
   },
   {
     href: "/chat",

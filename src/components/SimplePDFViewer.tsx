@@ -168,29 +168,51 @@ export default function SimplePDFViewer({ file }: SimplePDFViewerProps) {
     }> = [];
 
     // Add chapter sections and their stories
-    chapters.forEach((chapter: { slug: string; title: string; order: number; magazinePages?: { startPage: number; stories?: Array<{ title: string; page: number; author: string; relationship: string }> } }) => {
-      // Add chapter header
-      tocItems.push({
-        title: `${chapter.order}. ${chapter.title}`,
-        page: chapter.magazinePages?.startPage || 1,
-        type: "chapter",
-        chapterSlug: chapter.slug,
-      });
-
-      // Add individual stories from the chapter
-      if (chapter.magazinePages?.stories) {
-        chapter.magazinePages.stories.forEach((story: { title: string; page: number; author: string; relationship: string }) => {
-          tocItems.push({
-            title: story.title,
-            page: story.page,
-            type: "story",
-            author: story.author,
-            relationship: story.relationship,
-            chapterSlug: chapter.slug,
-          });
+    chapters.forEach(
+      (chapter: {
+        slug: string;
+        title: string;
+        order: number;
+        magazinePages?: {
+          startPage: number;
+          stories?: Array<{
+            title: string;
+            page: number;
+            author: string;
+            relationship: string;
+          }>;
+        };
+      }) => {
+        // Add chapter header
+        tocItems.push({
+          title: `${chapter.order}. ${chapter.title}`,
+          page: chapter.magazinePages?.startPage || 1,
+          type: "chapter",
+          chapterSlug: chapter.slug,
         });
+
+        // Add individual stories from the chapter
+        if (chapter.magazinePages?.stories) {
+          chapter.magazinePages.stories.forEach(
+            (story: {
+              title: string;
+              page: number;
+              author: string;
+              relationship: string;
+            }) => {
+              tocItems.push({
+                title: story.title,
+                page: story.page,
+                type: "story",
+                author: story.author,
+                relationship: story.relationship,
+                chapterSlug: chapter.slug,
+              });
+            }
+          );
+        }
       }
-    });
+    );
 
     return tocItems;
   }, []);
