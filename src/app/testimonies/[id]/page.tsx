@@ -21,6 +21,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import ImageModal from "@/components/ImageModal";
+import RichTextRenderer from "@/components/RichTextRenderer";
 
 interface TestimonyPageProps {
   params: Promise<{
@@ -71,8 +72,7 @@ export default function TestimonyPage({ params }: TestimonyPageProps) {
     .slice(0, 3)
     .map((result) => result.item);
 
-  // Split content into paragraphs for better reading
-  const paragraphs = testimony.content.split("\n").filter((p) => p.trim());
+  // Content will be rendered as rich text, no need to split into paragraphs
 
   // Get images for this testimony
   const { profileImage, galleryImages } = getTestimonyImageSources(testimony);
@@ -213,19 +213,13 @@ export default function TestimonyPage({ params }: TestimonyPageProps) {
             </div>
 
             {/* Content */}
-            <div className="prose prose-lg max-w-none font-serif text-gray-800 leading-relaxed">
-              {paragraphs.map((paragraph, index) => (
-                <motion.p
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.6, delay: 0.4 + index * 0.1 }}
-                  className="mb-6 text-lg leading-relaxed first-letter:text-4xl first-letter:font-bold first-letter:text-amber-700 first-letter:float-left first-letter:mr-2 first-letter:mt-1"
-                >
-                  {paragraph}
-                </motion.p>
-              ))}
-            </div>
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              <RichTextRenderer content={testimony.content} />
+            </motion.div>
 
             {/* Image Gallery */}
             {galleryImages.length > 0 && (

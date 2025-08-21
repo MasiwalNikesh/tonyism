@@ -223,18 +223,45 @@ export function highlightMatches(
   return highlightedText;
 }
 
+// Helper function to parse rich text to plain text
+export function parseRichTextToPlainText(content: string): string {
+  // Strip markdown formatting for plain text display
+  return content
+    .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold markers
+    .replace(/\*(.*?)\*/g, '$1')     // Remove italic markers  
+    .replace(/^> (.*$)/gim, '$1')    // Remove quote markers
+    .replace(/\n+/g, ' ')            // Replace line breaks with spaces
+    .trim();
+}
+
+// Helper function to parse rich text to HTML
+export function parseRichTextToHTML(content: string): string {
+  // Parse markdown-like formatting to HTML (similar to RichTextEditor preview)
+  return content
+    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+    .replace(/^> (.*$)/gim, '<blockquote class="border-l-2 border-gray-300 pl-2 italic text-gray-600">$1</blockquote>')
+    .replace(/\n\n/g, '</p><p class="mb-2">')
+    .replace(/\n/g, '<br />');
+}
+
 // Helper function to truncate content for search results
 export function truncateContent(
   content: string,
   maxLength: number = 200
 ): string {
-  if (content.length <= maxLength) return content;
-
-  const truncated = content.slice(0, maxLength);
+  // First convert to plain text to get accurate character count
+  const plainText = parseRichTextToPlainText(content);
+  if (plainText.length <= maxLength) {
+    // If short enough, return the HTML version
+    return parseRichTextToHTML(content);
+  }
+  
+  // Truncate the plain text version
+  const truncated = plainText.slice(0, maxLength);
   const lastSpaceIndex = truncated.lastIndexOf(" ");
-
-  return (
-    (lastSpaceIndex > 0 ? truncated.slice(0, lastSpaceIndex) : truncated) +
-    "..."
-  );
+  const finalText = (lastSpaceIndex > 0 ? truncated.slice(0, lastSpaceIndex) : truncated) + "...";
+  
+  // Return as plain text since it's truncated (rich formatting may be broken)
+  return finalText;
 }

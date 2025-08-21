@@ -118,6 +118,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
+    // Check if we're in production (Vercel)
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
+    
+    if (isProduction) {
+      // In production, return a mock success response since file system is read-only
+      console.log('Production environment detected - testimony creation simulated');
+      console.log('New testimony data:', JSON.stringify(newTestimony, null, 2));
+      return NextResponse.json({ 
+        message: 'Testimony creation received (production mode)', 
+        testimony: newTestimony,
+        note: 'File system updates are disabled in production environment'
+      });
+    }
+    
+    // Development environment - proceed with file operations
     const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
     const testimonials: Testimony[] = JSON.parse(data);
     
@@ -126,7 +141,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Testimony with this ID already exists' }, { status: 409 });
     }
     
-    // Create backup before modification
+    // Create backup before modification (only in development)
     await createBackup();
     
     testimonials.push(newTestimony);
@@ -135,6 +150,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ message: 'Testimony created successfully', testimony: newTestimony });
   } catch (error) {
     console.error('Error creating testimony:', error);
-    return NextResponse.json({ error: 'Failed to create testimony' }, { status: 500 });
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return NextResponse.json({ 
+      error: 'Failed to create testimony', 
+      details: errorMessage,
+      environment: process.env.NODE_ENV || 'unknown'
+    }, { status: 500 });
   }
 }
