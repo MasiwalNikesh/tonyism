@@ -17,9 +17,13 @@ export default function TestimoniesPage() {
   useEffect(() => {
     async function loadData() {
       try {
+        console.log('Starting to load testimonies data...');
         await testimonySearch.loadTestimonies();
+        console.log('Loaded testimonies, now getting featured...');
         const featured = await testimonySearch.getFeaturedTestimonies(6);
+        console.log('Featured testimonies:', featured.length);
         const statsData = await testimonySearch.getStats();
+        console.log('Stats data:', statsData);
         
         setFeaturedTestimonies(featured);
         setStats({
@@ -31,6 +35,7 @@ export default function TestimoniesPage() {
             colleagues: statsData.categories.colleagues || 0
           }
         });
+        console.log('Successfully set featured testimonies and stats');
       } catch (error) {
         console.error('Error loading testimonies:', error);
       } finally {
