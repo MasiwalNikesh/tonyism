@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { testimonySearch } from "@/lib/search";
+import { testimonySearch, Testimony } from "@/lib/search";
 import { getTestimonyImageSources } from "@/lib/images";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -45,7 +45,10 @@ const categoryIcons = {
 
 export default function TestimonyPage({ params }: TestimonyPageProps) {
   const { id } = use(params);
-  const testimony = testimonySearch.getTestimonyById(id);
+  const [testimony, setTestimony] = useState<Testimony | null>(null);
+  const [allTestimonies, setAllTestimonies] = useState<Testimony[]>([]);
+  const [relatedTestimonies, setRelatedTestimonies] = useState<Testimony[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modal state
   const [modalImage, setModalImage] = useState<{
@@ -55,22 +58,58 @@ export default function TestimonyPage({ params }: TestimonyPageProps) {
   } | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
+  // Load testimony data
+  useEffect(() => {
+    async function loadTestimony() {
+      try {
+        await testimonySearch.loadTestimonies();
+        
+        const foundTestimony = await testimonySearch.getTestimonyById(id);
+        if (!foundTestimony) {
+          notFound();
+        }
+        
+        const allTests = await testimonySearch.getAllTestimonies();
+        const related = await testimonySearch.search("", { category: foundTestimony.category });
+        
+        setTestimony(foundTestimony);
+        setAllTestimonies(allTests.sort((a, b) => a.page - b.page));
+        setRelatedTestimonies(
+          related
+            .filter((result) => result.item.id !== foundTestimony.id)
+            .slice(0, 3)
+            .map((result) => result.item)
+        );
+      } catch (error) {
+        console.error('Error loading testimony:', error);
+        notFound();
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadTestimony();
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading testimony...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!testimony) {
     notFound();
   }
 
-  // Get all testimonies sorted by page for navigation
-  const allTestimonies = testimonySearch.getAllTestimonies().sort((a, b) => a.page - b.page);
+  // Get navigation testimonies
   const currentIndex = allTestimonies.findIndex(t => t.id === testimony.id);
   const previousTestimony = currentIndex > 0 ? allTestimonies[currentIndex - 1] : null;
   const nextTestimony = currentIndex < allTestimonies.length - 1 ? allTestimonies[currentIndex + 1] : null;
-
-  // Get related testimonies (same category or author)
-  const relatedTestimonies = testimonySearch
-    .search("", { category: testimony.category })
-    .filter((result) => result.item.id !== testimony.id)
-    .slice(0, 3)
-    .map((result) => result.item);
 
   // Content will be rendered as rich text, no need to split into paragraphs
 

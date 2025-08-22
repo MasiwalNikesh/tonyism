@@ -1,5 +1,4 @@
 import Fuse from "fuse.js";
-import testimoniesData from "@/data/testimonies.json";
 
 export interface Testimony {
   id: string;
@@ -52,16 +51,35 @@ const fuseOptions = {
 };
 
 class TestimonySearch {
-  private fuse: Fuse<Testimony>;
-  private allTestimonies: Testimony[];
+  private fuse: Fuse<Testimony> | null = null;
+  private allTestimonies: Testimony[] = [];
+  private isLoaded: boolean = false;
 
-  constructor() {
-    this.allTestimonies = testimoniesData as Testimony[];
-    this.fuse = new Fuse(this.allTestimonies, fuseOptions);
+  async loadTestimonies(): Promise<void> {
+    if (this.isLoaded) return;
+    
+    try {
+      console.log('Loading testimonies from API...');
+      const response = await fetch('/api/testimonials');
+      if (response.ok) {
+        this.allTestimonies = await response.json();
+        console.log(`Loaded ${this.allTestimonies.length} testimonies from database`);
+        this.fuse = new Fuse(this.allTestimonies, fuseOptions);
+        this.isLoaded = true;
+      } else {
+        console.error('Failed to load testimonies from API, status:', response.status);
+      }
+    } catch (error) {
+      console.error('Error loading testimonies:', error);
+    }
   }
 
   // Main search function
-  search(query: string, filters?: SearchFilters): SearchResult[] {
+  async search(query: string, filters?: SearchFilters): Promise<SearchResult[]> {
+    await this.loadTestimonies();
+    
+    if (!this.fuse) return [];
+    
     let results: SearchResult[];
 
     if (query.trim()) {
@@ -122,7 +140,9 @@ class TestimonySearch {
   }
 
   // Get unique values for filter options
-  getFilterOptions() {
+  async getFilterOptions() {
+    await this.loadTestimonies();
+    
     const categories = [...new Set(this.allTestimonies.map((t) => t.category))];
     const relationships = [
       ...new Set(this.allTestimonies.map((t) => t.relationship)),
@@ -138,18 +158,30 @@ class TestimonySearch {
     };
   }
 
-  // Get testimony by ID
-  getTestimonyById(id: string): Testimony | undefined {
-    return this.allTestimonies.find((t) => t.id === id);
+  // Get testimony by ID - prefer using API directly for single items
+  async getTestimonyById(id: string): Promise<Testimony | null> {
+    try {
+      const response = await fetch(`/api/testimonials?id=${id}`);
+      if (response.ok) {
+        return await response.json();
+      }
+      return null;
+    } catch (error) {
+      console.error('Error fetching testimony by ID:', error);
+      return null;
+    }
   }
 
   // Get testimonies by category
-  getTestimoniesByCategory(category: string): Testimony[] {
+  async getTestimoniesByCategory(category: string): Promise<Testimony[]> {
+    await this.loadTestimonies();
     return this.allTestimonies.filter((t) => t.category === category);
   }
 
   // Get featured testimonies (for homepage)
-  getFeaturedTestimonies(count: number = 6): Testimony[] {
+  async getFeaturedTestimonies(count: number = 6): Promise<Testimony[]> {
+    await this.loadTestimonies();
+    
     const featured = [
       "foreword", // Editorial foreword
       "hum-do-humare-char", // Poonam Batra (Wife)
@@ -159,14 +191,22 @@ class TestimonySearch {
       "meethi-reet", // Nikesh Masiwal (Son-in-law)
     ];
 
-    return featured
-      .map((id) => this.getTestimonyById(id))
-      .filter(Boolean)
-      .slice(0, count) as Testimony[];
+    const featuredTestimonies: Testimony[] = [];
+    for (const id of featured) {
+      const testimony = await this.getTestimonyById(id);
+      if (testimony) {
+        featuredTestimonies.push(testimony);
+      }
+      if (featuredTestimonies.length >= count) break;
+    }
+    
+    return featuredTestimonies;
   }
 
   // Get statistics
-  getStats() {
+  async getStats() {
+    await this.loadTestimonies();
+    
     const categoryCounts = this.allTestimonies.reduce((acc, t) => {
       acc[t.category] = (acc[t.category] || 0) + 1;
       return acc;
@@ -179,8 +219,93 @@ class TestimonySearch {
   }
 
   // Get all testimonies
-  getAllTestimonies(): Testimony[] {
+  async getAllTestimonies(): Promise<Testimony[]> {
+    await this.loadTestimonies();
     return this.allTestimonies;
+  }
+
+  // Synchronous version for backwards compatibility (will be empty until loaded)
+  getAllTestimoniesSync(): Testimony[] {
+    return this.allTestimonies;
+  }
+
+  // Synchronous version of getTestimonyById for backwards compatibility
+  getTestimonyByIdSync(id: string): Testimony | undefined {
+    return this.allTestimonies.find((t) => t.id === id);
+  }
+
+  // Synchronous version of search for backwards compatibility
+  searchSync(query: string, filters?: SearchFilters): SearchResult[] {
+    if (!this.fuse) return [];
+    
+    let results: SearchResult[];
+
+    if (query.trim()) {
+      // Use fuzzy search for non-empty queries
+      const fuseResults = this.fuse.search(query);
+      results = fuseResults.map((result) => ({
+        item: result.item,
+        score: result.score,
+        matches: result.matches ? [...result.matches] : undefined,
+      }));
+    } else {
+      // Return all testimonies if no query
+      results = this.allTestimonies.map((item) => ({ item }));
+    }
+
+    // Apply filters
+    if (filters) {
+      results = this.applyFilters(results, filters);
+    }
+
+    return results;
+  }
+
+  // Synchronous version of getStats for backwards compatibility
+  getStatsSync() {
+    const categoryCounts = this.allTestimonies.reduce((acc, t) => {
+      acc[t.category] = (acc[t.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      total: this.allTestimonies.length,
+      categories: categoryCounts,
+    };
+  }
+
+  // Synchronous version of getFeaturedTestimonies for backwards compatibility
+  getFeaturedTestimoniesSync(count: number = 6): Testimony[] {
+    const featured = [
+      "foreword", // Editorial foreword
+      "hum-do-humare-char", // Poonam Batra (Wife)
+      "letter-from-son-to-son", // Ashish Batra (Son)
+      "mere-papa-with-love", // Divya Batra (Daughter)
+      "dear-papa-soumya", // Soumya (Daughter-in-law)
+      "meethi-reet", // Nikesh Masiwal (Son-in-law)
+    ];
+
+    return featured
+      .map((id) => this.getTestimonyByIdSync(id))
+      .filter(Boolean)
+      .slice(0, count) as Testimony[];
+  }
+
+  // Synchronous version of getFilterOptions for backwards compatibility
+  getFilterOptionsSync() {
+    const categories = [...new Set(this.allTestimonies.map((t) => t.category))];
+    const relationships = [
+      ...new Set(this.allTestimonies.map((t) => t.relationship)),
+    ];
+    const authors = [...new Set(this.allTestimonies.map((t) => t.author))];
+    const allTags = [...new Set(this.allTestimonies.flatMap((t) => t.tags))];
+
+    return {
+      categories: categories.sort(),
+      relationships: relationships.sort(),
+      authors: authors.sort(),
+      tags: allTags.sort(),
+    };
   }
 }
 

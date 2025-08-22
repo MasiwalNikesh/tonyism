@@ -4,13 +4,42 @@ import { motion } from "framer-motion";
 import { Heart, Users, Search, Sparkles } from "lucide-react";
 import SearchInterface from "@/components/search/SearchInterface";
 import TestimonyCard from "@/components/testimony/TestimonyCard";
-import { testimonySearch } from "@/lib/search";
+import { testimonySearch, Testimony } from "@/lib/search";
 import Link from "next/link";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function TestimoniesPage() {
-  const featuredTestimonies = testimonySearch.getFeaturedTestimonies(6);
-  const stats = testimonySearch.getStats();
+  const [featuredTestimonies, setFeaturedTestimonies] = useState<Testimony[]>([]);
+  const [stats, setStats] = useState({ total: 0, categories: { family: 0, friends: 0, elders: 0, colleagues: 0 } });
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load testimonies data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        await testimonySearch.loadTestimonies();
+        const featured = await testimonySearch.getFeaturedTestimonies(6);
+        const statsData = await testimonySearch.getStats();
+        
+        setFeaturedTestimonies(featured);
+        setStats({
+          total: statsData.total,
+          categories: {
+            family: statsData.categories.family || 0,
+            friends: statsData.categories.friends || 0,
+            elders: statsData.categories.elders || 0,
+            colleagues: statsData.categories.colleagues || 0
+          }
+        });
+      } catch (error) {
+        console.error('Error loading testimonies:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadData();
+  }, []);
 
   // Restore scroll position when returning from testimony detail page
   useEffect(() => {
@@ -117,14 +146,26 @@ export default function TestimoniesPage() {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-            {featuredTestimonies.map((testimony, index) => (
-              <TestimonyCard
-                key={testimony.id}
-                testimony={testimony}
-                index={index}
-                variant="featured"
-              />
-            ))}
+            {isLoading ? (
+              // Loading skeleton
+              Array.from({ length: 6 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-xl shadow-sm p-6 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded mb-4"></div>
+                  <div className="h-2 bg-gray-200 rounded"></div>
+                </div>
+              ))
+            ) : (
+              featuredTestimonies.map((testimony, index) => (
+                <TestimonyCard
+                  key={testimony.id}
+                  testimony={testimony}
+                  index={index}
+                  variant="featured"
+                />
+              ))
+            )}
           </div>
 
           <div className="text-center">

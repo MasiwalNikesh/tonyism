@@ -3,28 +3,48 @@
 import { motion } from "framer-motion";
 import { ChefHat, Clock, Users } from "lucide-react";
 import Link from "next/link";
-import { testimonySearch } from "@/lib/search";
+import { testimonySearch, Testimony } from "@/lib/search";
+import { useEffect, useState } from "react";
 
 export default function RecipesPage() {
-  const allTestimonies = testimonySearch.getAllTestimonies();
+  const [recipes, setRecipes] = useState<Testimony[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter testimonies that are recipes (based on id and content keywords)
-  const recipes = allTestimonies.filter(
-    (testimony) =>
-      testimony.id.includes("recipe") ||
-      testimony.id.includes("kitchen") ||
-      testimony.id.includes("food") ||
-      testimony.id.includes("feeding") ||
-      testimony.id.includes("namkeen") ||
-      testimony.id.includes("laddu") ||
-      testimony.id.includes("barfi") ||
-      testimony.id.includes("bharta") ||
-      testimony.id.includes("kadhi") ||
-      testimony.title.toLowerCase().includes("recipe") ||
-      testimony.title.toLowerCase().includes("food") ||
-      testimony.content.toLowerCase().includes("recipe") ||
-      testimony.content.toLowerCase().includes("cooking")
-  );
+  // Load and filter testimonies
+  useEffect(() => {
+    async function loadRecipes() {
+      try {
+        await testimonySearch.loadTestimonies();
+        const allTestimonies = await testimonySearch.getAllTestimonies();
+        
+        // Filter testimonies that are recipes (based on id and content keywords)
+        const filteredRecipes = allTestimonies.filter(
+          (testimony) =>
+            testimony.id.includes("recipe") ||
+            testimony.id.includes("kitchen") ||
+            testimony.id.includes("food") ||
+            testimony.id.includes("feeding") ||
+            testimony.id.includes("namkeen") ||
+            testimony.id.includes("laddu") ||
+            testimony.id.includes("barfi") ||
+            testimony.id.includes("bharta") ||
+            testimony.id.includes("kadhi") ||
+            testimony.title.toLowerCase().includes("recipe") ||
+            testimony.title.toLowerCase().includes("food") ||
+            testimony.content.toLowerCase().includes("recipe") ||
+            testimony.content.toLowerCase().includes("cooking")
+        );
+        
+        setRecipes(filteredRecipes);
+      } catch (error) {
+        console.error('Error loading recipes:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadRecipes();
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 p-4 md:p-8">
@@ -57,7 +77,18 @@ export default function RecipesPage() {
           transition={{ delay: 0.2, duration: 0.8 }}
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
         >
-          {recipes.map((recipe, index) => (
+          {isLoading ? (
+            // Loading skeleton
+            Array.from({ length: 6 }).map((_, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-md p-6 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-3 bg-gray-200 rounded"></div>
+              </div>
+            ))
+          ) : (
+            recipes.map((recipe, index) => (
             <motion.div
               key={recipe.id}
               initial={{ opacity: 0, y: 20 }}
@@ -109,7 +140,8 @@ export default function RecipesPage() {
                 </div>
               </Link>
             </motion.div>
-          ))}
+          ))
+          )}
         </motion.div>
 
         {/* Food Philosophy Section */}

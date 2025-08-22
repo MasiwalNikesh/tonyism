@@ -1,9 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
-import { Testimony } from '../testimonials/route';
-
-const TESTIMONIES_FILE = path.join(process.cwd(), 'src/data/testimonies.json');
+import { db, testimonies } from '@/lib/db';
 
 // Simple admin authentication check
 function checkAdminAuth(request: NextRequest): boolean {
@@ -21,24 +17,23 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
-    const testimonials: Testimony[] = JSON.parse(data);
+    const testimonialsData = await db.select().from(testimonies);
     
     // Extract unique values for dropdown options
-    const categories = [...new Set(testimonials.map(t => t.category))].sort();
-    const chapters = [...new Set(testimonials.map(t => t.chapter))].sort();
-    const relationships = [...new Set(testimonials.map(t => t.relationship))].sort();
-    const authors = [...new Set(testimonials.map(t => t.author))].sort();
+    const categories = [...new Set(testimonialsData.map(t => t.category))].sort();
+    const chapters = [...new Set(testimonialsData.map(t => t.chapter))].sort();
+    const relationships = [...new Set(testimonialsData.map(t => t.relationship))].sort();
+    const authors = [...new Set(testimonialsData.map(t => t.author))].sort();
     
     // Get all unique tags
-    const allTags = testimonials.reduce((acc, t) => {
-      t.tags.forEach(tag => acc.add(tag));
+    const allTags = testimonialsData.reduce((acc, t) => {
+      (t.tags as string[]).forEach(tag => acc.add(tag));
       return acc;
     }, new Set<string>());
     const tags = Array.from(allTags).sort();
     
     // Get page range
-    const pages = testimonials.map(t => t.page).filter(p => p > 0).sort((a, b) => a - b);
+    const pages = testimonialsData.map(t => t.page).filter(p => p > 0).sort((a, b) => a - b);
     const pageRange = pages.length > 0 ? { min: pages[0], max: pages[pages.length - 1] } : { min: 1, max: 143 };
     
     return NextResponse.json({
@@ -48,7 +43,7 @@ export async function GET(request: NextRequest) {
       authors,
       tags,
       pageRange,
-      totalTestimonials: testimonials.length
+      totalTestimonials: testimonialsData.length
     });
   } catch (error) {
     console.error('Error reading metadata:', error);

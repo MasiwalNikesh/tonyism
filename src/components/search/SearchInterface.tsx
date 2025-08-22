@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -40,14 +40,46 @@ export default function SearchInterface({
   const [isLoading, setIsLoading] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>("page");
 
-  // Get filter options from search service
-  const filterOptions = useMemo(() => testimonySearch.getFilterOptions(), []);
-  const stats = useMemo(() => testimonySearch.getStats(), []);
+  // State for filter options and stats
+  const [filterOptions, setFilterOptions] = useState<{ authors: string[], relationships: string[], tags: string[], categories?: string[] }>({ authors: [], relationships: [], tags: [] });
+  const [stats, setStats] = useState({ total: 0, categories: { family: 0, friends: 0, elders: 0, colleagues: 0 } });
+  const [dataLoaded, setDataLoaded] = useState(false);
+
+  // Load initial data
+  useEffect(() => {
+    async function loadData() {
+      try {
+        await testimonySearch.loadTestimonies();
+        const options = await testimonySearch.getFilterOptions();
+        const statsData = await testimonySearch.getStats();
+        setFilterOptions(options);
+        setStats({
+          total: statsData.total,
+          categories: {
+            family: statsData.categories.family || 0,
+            friends: statsData.categories.friends || 0,
+            elders: statsData.categories.elders || 0,
+            colleagues: statsData.categories.colleagues || 0
+          }
+        });
+        setDataLoaded(true);
+      } catch (error) {
+        console.error('Error loading search data:', error);
+      }
+    }
+    
+    loadData();
+  }, []);
 
   // Perform search
   useEffect(() => {
-    setIsLoading(true);
-    const searchResults = testimonySearch.search(query, filters);
+    async function performSearch() {
+      if (!dataLoaded) {
+        return;
+      }
+      
+      setIsLoading(true);
+      const searchResults = await testimonySearch.search(query, filters);
 
     // Sort results
     const sortedResults = [...searchResults].sort((a, b) => {
@@ -64,9 +96,12 @@ export default function SearchInterface({
       }
     });
 
-    setResults(sortedResults);
-    setIsLoading(false);
-  }, [query, filters, sortBy]);
+      setResults(sortedResults);
+      setIsLoading(false);
+    }
+    
+    performSearch();
+  }, [query, filters, sortBy, dataLoaded]);
 
   // Handle filter changes
   const updateFilter = (
@@ -168,7 +203,7 @@ export default function SearchInterface({
             {Object.entries(categoryConfig).map(([category, config]) => {
               const Icon = config.icon;
               const isActive = filters.category === category;
-              const count = stats.categories[category] || 0;
+              const count = stats.categories[category as keyof typeof stats.categories] || 0;
 
               return (
                 <button

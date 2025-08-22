@@ -3,31 +3,51 @@
 import { motion } from "framer-motion";
 import { Baby, Heart, Star, BookOpen } from "lucide-react";
 import Link from "next/link";
-import { testimonySearch } from "@/lib/search";
+import { testimonySearch, Testimony } from "@/lib/search";
+import { useEffect, useState } from "react";
 
 export default function StoriesPage() {
-  const allTestimonies = testimonySearch.getAllTestimonies();
+  const [childrenStories, setChildrenStories] = useState<Testimony[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Filter testimonies that are children's stories, poems, or from children
-  const childrenStories = allTestimonies.filter(
-    (testimony) =>
-      testimony.id.includes("elephant-king") ||
-      testimony.id.includes("tiny-section") ||
-      testimony.id.includes("nana") ||
-      testimony.id.includes("nanu") ||
-      testimony.id.includes("granddaughter") ||
-      testimony.id.includes("chopra") ||
-      testimony.id.includes("arora") ||
-      testimony.id.includes("aaradhya") ||
-      testimony.id.includes("khushi") ||
-      testimony.id.includes("suhaani") ||
-      testimony.id.includes("eshika") ||
-      testimony.title.toLowerCase().includes("child") ||
-      testimony.title.toLowerCase().includes("story") ||
-      testimony.content.toLowerCase().includes("elephant") ||
-      testimony.relationship.toLowerCase().includes("granddaughter") ||
-      testimony.relationship.toLowerCase().includes("grandson")
-  );
+  // Load and filter testimonies
+  useEffect(() => {
+    async function loadStories() {
+      try {
+        await testimonySearch.loadTestimonies();
+        const allTestimonies = await testimonySearch.getAllTestimonies();
+        
+        // Filter testimonies that are children's stories, poems, or from children
+        const filteredStories = allTestimonies.filter(
+          (testimony) =>
+            testimony.id.includes("elephant-king") ||
+            testimony.id.includes("tiny-section") ||
+            testimony.id.includes("nana") ||
+            testimony.id.includes("nanu") ||
+            testimony.id.includes("granddaughter") ||
+            testimony.id.includes("chopra") ||
+            testimony.id.includes("arora") ||
+            testimony.id.includes("aaradhya") ||
+            testimony.id.includes("khushi") ||
+            testimony.id.includes("suhaani") ||
+            testimony.id.includes("eshika") ||
+            testimony.title.toLowerCase().includes("child") ||
+            testimony.title.toLowerCase().includes("story") ||
+            testimony.content.toLowerCase().includes("elephant") ||
+            testimony.relationship.toLowerCase().includes("granddaughter") ||
+            testimony.relationship.toLowerCase().includes("grandson")
+        );
+        
+        setChildrenStories(filteredStories);
+      } catch (error) {
+        console.error('Error loading stories:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    loadStories();
+  }, []);
 
   // Featured story (Elephant King)
   const elephantKingStory = childrenStories.find((story) =>
@@ -172,7 +192,17 @@ export default function StoriesPage() {
             All Children&apos;s Content
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {childrenStories.map((story, index) => (
+            {isLoading ? (
+              // Loading skeleton
+              Array.from({ length: 4 }).map((_, index) => (
+                <div key={index} className="bg-white rounded-lg shadow-sm p-4 animate-pulse">
+                  <div className="h-5 bg-gray-200 rounded mb-3"></div>
+                  <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                  <div className="h-3 bg-gray-200 rounded"></div>
+                </div>
+              ))
+            ) : (
+              childrenStories.map((story, index) => (
               <motion.div
                 key={story.id}
                 initial={{ opacity: 0, x: -20 }}
@@ -198,7 +228,8 @@ export default function StoriesPage() {
                   </div>
                 </Link>
               </motion.div>
-            ))}
+            ))
+            )}
           </div>
         </motion.div>
 

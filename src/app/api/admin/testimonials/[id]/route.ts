@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { promises as fs } from 'fs';
-import path from 'path';
+import { eq } from 'drizzle-orm';
+import { db, testimonies, images, testimonyImages } from '@/lib/db';
 import { Testimony } from '../route';
-
-const TESTIMONIES_FILE = path.join(process.cwd(), 'src/data/testimonies.json');
-const BACKUP_DIR = path.join(process.cwd(), 'backups');
 
 // Simple admin authentication check
 function checkAdminAuth(request: NextRequest): boolean {
@@ -13,18 +10,6 @@ function checkAdminAuth(request: NextRequest): boolean {
   
   const token = authHeader.split(' ')[1];
   return token === 'admin123';
-}
-
-async function createBackup(): Promise<void> {
-  try {
-    await fs.mkdir(BACKUP_DIR, { recursive: true });
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupFile = path.join(BACKUP_DIR, `testimonies-${timestamp}.json`);
-    const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
-    await fs.writeFile(backupFile, data);
-  } catch (error) {
-    console.error('Failed to create backup:', error);
-  }
 }
 
 // GET /api/admin/testimonials/[id] - Get specific testimony
@@ -38,15 +23,57 @@ export async function GET(
   }
 
   try {
-    const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
-    const testimonials: Testimony[] = JSON.parse(data);
+    // Get testimony
+    const testimonyResult = await db
+      .select({
+        id: testimonies.id,
+        title: testimonies.title,
+        author: testimonies.author,
+        relationship: testimonies.relationship,
+        content: testimonies.content,
+        page: testimonies.page,
+        category: testimonies.category,
+        chapter: testimonies.chapter,
+        tags: testimonies.tags,
+        pageRange: testimonies.pageRange,
+      })
+      .from(testimonies)
+      .where(eq(testimonies.id, id))
+      .limit(1);
     
-    const testimony = testimonials.find(t => t.id === id);
-    if (!testimony) {
+    if (testimonyResult.length === 0) {
       return NextResponse.json({ error: 'Testimony not found' }, { status: 404 });
     }
     
-    return NextResponse.json(testimony);
+    const testimony = testimonyResult[0];
+    
+    // Get associated images
+    const testimonyImagesResult = await db
+      .select({
+        imagePath: images.path,
+        caption: testimonyImages.caption,
+        order: testimonyImages.order,
+      })
+      .from(testimonyImages)
+      .innerJoin(images, eq(testimonyImages.imageId, images.id))
+      .where(eq(testimonyImages.testimonyId, id))
+      .orderBy(testimonyImages.order);
+    
+    // Format the response
+    const formattedTestimony: Testimony = {
+      ...testimony,
+      tags: testimony.tags as string[] || [],
+      pageRange: testimony.pageRange as { start: number; end: number } | undefined,
+      images: testimonyImagesResult.map(img => img.imagePath),
+      imagesCaptions: testimonyImagesResult.reduce((acc, img) => {
+        if (img.caption) {
+          acc[img.imagePath] = img.caption;
+        }
+        return acc;
+      }, {} as { [imagePath: string]: string }),
+    };
+    
+    return NextResponse.json(formattedTestimony);
   } catch (error) {
     console.error('Error reading testimony:', error);
     return NextResponse.json({ error: 'Failed to read testimony' }, { status: 500 });
@@ -71,46 +98,82 @@ export async function PUT(
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
     
-    // Check if we're in production (Vercel)
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
-    
-    if (isProduction) {
-      // In production, return a mock success response since file system is read-only
-      console.log('Production environment detected - testimony update simulated');
-      console.log('Updated testimony data:', JSON.stringify(updatedTestimony, null, 2));
-      return NextResponse.json({ 
-        message: 'Testimony update received (production mode)', 
-        testimony: updatedTestimony,
-        note: 'File system updates are disabled in production environment'
-      });
-    }
-    
-    // Development environment - proceed with file operations
-    const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
-    const testimonials: Testimony[] = JSON.parse(data);
-    
-    const index = testimonials.findIndex(t => t.id === id);
-    if (index === -1) {
+    // Check if testimony exists
+    const existing = await db
+      .select({ id: testimonies.id })
+      .from(testimonies)
+      .where(eq(testimonies.id, id))
+      .limit(1);
+      
+    if (existing.length === 0) {
       return NextResponse.json({ error: 'Testimony not found' }, { status: 404 });
     }
     
-    // Create backup before modification (only in development)
-    await createBackup();
+    // Update testimony
+    await db.update(testimonies)
+      .set({
+        title: updatedTestimony.title,
+        author: updatedTestimony.author,
+        relationship: updatedTestimony.relationship,
+        content: updatedTestimony.content,
+        page: updatedTestimony.page,
+        category: updatedTestimony.category,
+        chapter: updatedTestimony.chapter,
+        tags: updatedTestimony.tags || [],
+        pageRange: updatedTestimony.pageRange || null,
+        updatedAt: new Date(),
+      })
+      .where(eq(testimonies.id, id));
     
-    // Ensure the ID doesn't change
-    updatedTestimony.id = id;
-    testimonials[index] = updatedTestimony;
+    // Delete existing image relationships
+    await db.delete(testimonyImages)
+      .where(eq(testimonyImages.testimonyId, id));
     
-    await fs.writeFile(TESTIMONIES_FILE, JSON.stringify(testimonials, null, 2));
+    // Handle images if provided
+    if (updatedTestimony.images && updatedTestimony.images.length > 0) {
+      for (let i = 0; i < updatedTestimony.images.length; i++) {
+        const imagePath = updatedTestimony.images[i];
+        
+        // Get or create image
+        const imageResult = await db
+          .select({ id: images.id })
+          .from(images)
+          .where(eq(images.path, imagePath))
+          .limit(1);
+        
+        let imageId: string;
+        
+        if (imageResult.length === 0) {
+          // Create new image record
+          const filename = imagePath.split('/').pop() || '';
+          const newImages = await db.insert(images).values({
+            path: imagePath,
+            filename,
+          }).returning();
+          const newImage = newImages[0];
+          imageId = newImage.id;
+        } else {
+          imageId = imageResult[0].id;
+        }
+        
+        // Link image to testimony
+        const caption = updatedTestimony.imagesCaptions?.[imagePath] || null;
+        await db.insert(testimonyImages).values({
+          testimonyId: id,
+          imageId,
+          caption,
+          order: i,
+        });
+      }
+    }
     
-    return NextResponse.json({ message: 'Testimony updated successfully', testimony: updatedTestimony });
+    return NextResponse.json({ message: 'Testimony updated successfully', testimony: { ...updatedTestimony, id } });
   } catch (error) {
     console.error('Error updating testimony:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ 
       error: 'Failed to update testimony', 
-      details: errorMessage,
-      environment: process.env.NODE_ENV || 'unknown'
+      details: errorMessage 
     }, { status: 500 });
   }
 }
@@ -126,43 +189,28 @@ export async function DELETE(
   }
 
   try {
-    // Check if we're in production (Vercel)
-    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL;
-    
-    if (isProduction) {
-      // In production, return a mock success response since file system is read-only
-      console.log('Production environment detected - testimony deletion simulated');
-      console.log('Testimony ID to delete:', id);
-      return NextResponse.json({ 
-        message: 'Testimony deletion received (production mode)', 
-        testimony: { id },
-        note: 'File system updates are disabled in production environment'
-      });
-    }
-
-    // Development environment - proceed with file operations
-    const data = await fs.readFile(TESTIMONIES_FILE, 'utf8');
-    const testimonials: Testimony[] = JSON.parse(data);
-    
-    const index = testimonials.findIndex(t => t.id === id);
-    if (index === -1) {
+    // Check if testimony exists
+    const existing = await db
+      .select({ id: testimonies.id })
+      .from(testimonies)
+      .where(eq(testimonies.id, id))
+      .limit(1);
+      
+    if (existing.length === 0) {
       return NextResponse.json({ error: 'Testimony not found' }, { status: 404 });
     }
     
-    // Create backup before modification (only in development)
-    await createBackup();
+    // Delete testimony (cascade will handle testimony_images)
+    await db.delete(testimonies)
+      .where(eq(testimonies.id, id));
     
-    const deletedTestimony = testimonials.splice(index, 1)[0];
-    await fs.writeFile(TESTIMONIES_FILE, JSON.stringify(testimonials, null, 2));
-    
-    return NextResponse.json({ message: 'Testimony deleted successfully', testimony: deletedTestimony });
+    return NextResponse.json({ message: 'Testimony deleted successfully', testimony: { id } });
   } catch (error) {
     console.error('Error deleting testimony:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return NextResponse.json({ 
       error: 'Failed to delete testimony', 
-      details: errorMessage,
-      environment: process.env.NODE_ENV || 'unknown'
+      details: errorMessage 
     }, { status: 500 });
   }
 }
