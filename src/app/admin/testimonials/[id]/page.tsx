@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, use } from 'react';
+import { useState, useEffect, use, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Testimony } from '@/app/api/admin/testimonials/route';
 import RichTextEditor from '@/components/admin/RichTextEditor';
@@ -83,7 +83,7 @@ export default function EditTestimonial({ params }: { params: Promise<{ id: stri
     'Content-Type': 'application/json',
   });
 
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/metadata', {
         headers: getAuthHeaders(),
@@ -96,9 +96,9 @@ export default function EditTestimonial({ params }: { params: Promise<{ id: stri
     } catch (err) {
       console.error('Failed to load metadata:', err);
     }
-  };
+  }, []);
 
-  const loadTestimony = async () => {
+  const loadTestimony = useCallback(async () => {
     try {
       const response = await fetch(`/api/admin/testimonials/${id}`, {
         headers: getAuthHeaders(),
@@ -117,7 +117,7 @@ export default function EditTestimonial({ params }: { params: Promise<{ id: stri
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   const loadPageBasedImages = async (pageNumber: number, pageRange?: { start: number; end: number }) => {
     try {

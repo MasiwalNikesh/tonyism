@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Testimony } from '@/app/api/admin/testimonials/route';
 
@@ -60,7 +60,7 @@ export default function TestimonialsAdmin() {
     'Content-Type': 'application/json',
   });
 
-  const loadMetadata = async () => {
+  const loadMetadata = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/metadata', {
         headers: getAuthHeaders(),
@@ -73,9 +73,9 @@ export default function TestimonialsAdmin() {
     } catch (err) {
       console.error('Failed to load metadata:', err);
     }
-  };
+  }, []);
 
-  const loadTestimonials = async () => {
+  const loadTestimonials = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
@@ -104,7 +104,7 @@ export default function TestimonialsAdmin() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, itemsPerPage, search, categoryFilter, chapterFilter]);
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this testimonial?')) {

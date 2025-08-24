@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, Users, Play, ExternalLink } from "lucide-react";
+import { Heart, Play } from "lucide-react";
 import Link from "next/link";
 
 export default function NGOPage() {

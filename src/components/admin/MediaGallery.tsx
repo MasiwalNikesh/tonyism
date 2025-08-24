@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
+import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 
 interface TestimonyImage {
   filename: string;
@@ -34,77 +34,79 @@ interface ImagesResponse {
 interface MediaGalleryProps {
   onSelectImage?: (image: TestimonyImage) => void;
   selectedImages?: string[];
-  mode?: 'select' | 'gallery';
+  mode?: "select" | "gallery";
   testimonyPage?: number;
 }
 
-export default function MediaGallery({ 
-  onSelectImage, 
-  selectedImages = [], 
-  mode = 'gallery',
-  testimonyPage 
+export default function MediaGallery({
+  onSelectImage,
+  selectedImages = [],
+  mode = "gallery",
+  testimonyPage,
 }: MediaGalleryProps) {
   const [images, setImages] = useState<TestimonyImage[]>([]);
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   // Filters
-  const [search, setSearch] = useState('');
-  const [pageFilter, setPageFilter] = useState(testimonyPage?.toString() || '');
+  const [search, setSearch] = useState("");
+  const [pageFilter, setPageFilter] = useState(testimonyPage?.toString() || "");
   const [currentPage, setCurrentPage] = useState(1);
-  const [selectedImage, setSelectedImage] = useState<TestimonyImage | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectedImage, setSelectedImage] = useState<TestimonyImage | null>(
+    null
+  );
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   useEffect(() => {
     loadImages();
   }, [currentPage, search, pageFilter]);
 
   const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+    "Content-Type": "application/json",
   });
 
-  const loadImages = async () => {
+  const loadImages = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
-        limit: '50',
+        limit: "50",
       });
-      
-      if (search) params.append('search', search);
-      if (pageFilter) params.append('pageNumber', pageFilter);
-      
+
+      if (search) params.append("search", search);
+      if (pageFilter) params.append("pageNumber", pageFilter);
+
       const response = await fetch(`/api/admin/images?${params}`, {
         headers: getAuthHeaders(),
       });
-      
+
       if (response.ok) {
         const data: ImagesResponse = await response.json();
         setImages(data.images);
         setPagination(data.pagination);
       } else {
-        throw new Error('Failed to load images');
+        throw new Error("Failed to load images");
       }
     } catch (err) {
-      setError('Failed to load images');
+      setError("Failed to load images");
       console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, search, pageFilter]);
 
   const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const sizes = ["Bytes", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   const handleImageClick = (image: TestimonyImage) => {
-    if (mode === 'select' && onSelectImage) {
+    if (mode === "select" && onSelectImage) {
       onSelectImage(image);
     } else {
       setSelectedImage(image);
@@ -125,18 +127,18 @@ export default function MediaGallery({
       <div className="border-b border-gray-200 p-4">
         <div className="flex justify-between items-center">
           <h2 className="text-lg font-semibold text-black">
-            {mode === 'select' ? 'Select Images' : 'Media Gallery'}
+            {mode === "select" ? "Select Images" : "Media Gallery"}
           </h2>
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
+              onClick={() => setViewMode(viewMode === "grid" ? "list" : "grid")}
               className="px-3 py-1 text-sm border border-gray-300 rounded hover:bg-gray-50 text-black"
             >
-              {viewMode === 'grid' ? 'List View' : 'Grid View'}
+              {viewMode === "grid" ? "List View" : "Grid View"}
             </button>
           </div>
         </div>
-        
+
         {/* Filters */}
         <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
@@ -171,13 +173,15 @@ export default function MediaGallery({
 
       {/* Image Grid/List */}
       <div className="p-4">
-        {viewMode === 'grid' ? (
+        {viewMode === "grid" ? (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
             {images.map((image) => (
               <div
                 key={image.filename}
                 className={`border rounded-lg overflow-hidden cursor-pointer hover:shadow-md transition-shadow ${
-                  selectedImages.includes(image.path) ? 'ring-2 ring-indigo-500' : ''
+                  selectedImages.includes(image.path)
+                    ? "ring-2 ring-indigo-500"
+                    : ""
                 }`}
                 onClick={() => handleImageClick(image)}
               >
@@ -196,7 +200,9 @@ export default function MediaGallery({
                   </div>
                   <div className="flex items-center justify-between mt-1">
                     {image.page && (
-                      <div className="text-xs text-gray-500">Page {image.page}</div>
+                      <div className="text-xs text-gray-500">
+                        Page {image.page}
+                      </div>
                     )}
                     {image.isPageBased && (
                       <span className="inline-flex items-center px-1 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">
@@ -220,7 +226,9 @@ export default function MediaGallery({
               <div
                 key={image.filename}
                 className={`flex items-center p-3 border rounded-lg cursor-pointer hover:bg-gray-50 ${
-                  selectedImages.includes(image.path) ? 'ring-2 ring-indigo-500' : ''
+                  selectedImages.includes(image.path)
+                    ? "ring-2 ring-indigo-500"
+                    : ""
                 }`}
                 onClick={() => handleImageClick(image)}
               >
@@ -255,7 +263,9 @@ export default function MediaGallery({
                     </div>
                   )}
                   {image.author && (
-                    <div className="text-xs text-gray-600">by {image.author}</div>
+                    <div className="text-xs text-gray-600">
+                      by {image.author}
+                    </div>
                   )}
                 </div>
               </div>
@@ -296,7 +306,7 @@ export default function MediaGallery({
       )}
 
       {/* Image Preview Modal */}
-      {selectedImage && mode === 'gallery' && (
+      {selectedImage && mode === "gallery" && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg max-w-4xl max-h-full overflow-hidden">
             <div className="flex justify-between items-center p-4 border-b">
@@ -305,7 +315,9 @@ export default function MediaGallery({
                   {selectedImage.title || selectedImage.filename}
                 </h3>
                 {selectedImage.page && (
-                  <p className="text-sm text-gray-600">Page {selectedImage.page}</p>
+                  <p className="text-sm text-gray-600">
+                    Page {selectedImage.page}
+                  </p>
                 )}
               </div>
               <button
@@ -313,8 +325,18 @@ export default function MediaGallery({
                 className="text-gray-500 hover:text-gray-700"
               >
                 <span className="sr-only">Close</span>
-                <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>

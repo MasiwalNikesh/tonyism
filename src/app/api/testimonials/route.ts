@@ -1,11 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { eq, inArray, or, like, sql } from 'drizzle-orm';
-import { db, testimonies, images, testimonyImages, videos, testimonyVideos } from '@/lib/db';
+import { NextRequest, NextResponse } from "next/server";
+import { eq, inArray, or, like, sql } from "drizzle-orm";
+import {
+  db,
+  testimonies,
+  images,
+  testimonyImages,
+  videos,
+  testimonyVideos,
+} from "@/lib/db";
+
+// Type for database errors
+interface DatabaseError {
+  code?: string;
+  message?: string;
+  cause?: {
+    code?: string;
+    message?: string;
+  };
+}
 
 export interface Video {
   id: string;
   url: string;
-  type: 'youtube' | 'google_drive' | 'vimeo';
+  type: "youtube" | "google_drive" | "vimeo";
   title?: string;
   description?: string;
   thumbnailUrl?: string;
@@ -33,24 +50,27 @@ export interface Testimony {
 }
 
 // Retry function for database operations
-async function retryDbOperation<T>(operation: () => Promise<T>, maxRetries = 2): Promise<T> {
+async function retryDbOperation<T>(
+  operation: () => Promise<T>,
+  maxRetries = 2
+): Promise<T> {
   let lastError: Error;
-  
+
   for (let attempt = 1; attempt <= maxRetries + 1; attempt++) {
     try {
       return await operation();
     } catch (error) {
       lastError = error as Error;
       console.log(`Database operation attempt ${attempt} failed:`, error);
-      
+
       if (attempt <= maxRetries) {
         // Wait before retrying (exponential backoff)
-        await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        await new Promise((resolve) => setTimeout(resolve, attempt * 1000));
         console.log(`Retrying database operation (attempt ${attempt + 1})...`);
       }
     }
   }
-  
+
   throw lastError!;
 }
 
@@ -58,24 +78,25 @@ async function retryDbOperation<T>(operation: () => Promise<T>, maxRetries = 2):
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
-    const id = url.searchParams.get('id');
-    const page = url.searchParams.get('page') ? parseInt(url.searchParams.get('page')!) : 1;
-    const limit = url.searchParams.get('limit') ? parseInt(url.searchParams.get('limit')!) : 25;
-    const search = url.searchParams.get('search');
-    const category = url.searchParams.get('category');
+    const id = url.searchParams.get("id");
+    const page = url.searchParams.get("page")
+      ? parseInt(url.searchParams.get("page")!)
+      : 1;
+    const limit = url.searchParams.get("limit")
+      ? parseInt(url.searchParams.get("limit")!)
+      : 25;
+    const search = url.searchParams.get("search");
+    const category = url.searchParams.get("category");
 
-    // Cache key for this specific request
-    const cacheKey = `testimonials_${id || 'all'}_${page}_${limit}_${search || ''}_${category || ''}`;
-    
     // Set cache headers for better performance
     const headers = {
-      'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600', // Cache for 5 minutes, serve stale for 10 minutes
-      'Content-Type': 'application/json',
+      "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600", // Cache for 5 minutes, serve stale for 10 minutes
+      "Content-Type": "application/json",
     };
-    
+
     if (id) {
       // Get single testimony by ID with retry
-      const testimonyResult = await retryDbOperation(() => 
+      const testimonyResult = await retryDbOperation(() =>
         db
           .select({
             id: testimonies.id,
@@ -93,13 +114,16 @@ export async function GET(request: NextRequest) {
           .where(eq(testimonies.id, id))
           .limit(1)
       );
-      
+
       if (testimonyResult.length === 0) {
-        return NextResponse.json({ error: 'Testimony not found' }, { status: 404 });
+        return NextResponse.json(
+          { error: "Testimony not found" },
+          { status: 404 }
+        );
       }
-      
+
       const testimony = testimonyResult[0];
-      
+
       // Get associated images with retry
       const testimonyImagesResult = await retryDbOperation(() =>
         db
@@ -113,7 +137,7 @@ export async function GET(request: NextRequest) {
           .where(eq(testimonyImages.testimonyId, id))
           .orderBy(testimonyImages.order)
       );
-      
+
       // Get associated videos with retry (gracefully handle missing tables)
       let testimonyVideosResult: Array<{
         videoId: string;
@@ -126,7 +150,7 @@ export async function GET(request: NextRequest) {
         caption: string | null;
         order: number | null;
       }> = [];
-      
+
       try {
         testimonyVideosResult = await db
           .select({
@@ -144,32 +168,42 @@ export async function GET(request: NextRequest) {
           .innerJoin(videos, eq(testimonyVideos.videoId, videos.id))
           .where(eq(testimonyVideos.testimonyId, id))
           .orderBy(testimonyVideos.order);
-      } catch (error: any) {
+      } catch (error: unknown) {
         // Gracefully handle missing video tables (they might not exist in production yet)
-        const isTableMissingError = error.message?.includes('does not exist') || 
-          error.message?.includes('relation') || 
-          error.code === '42P01' ||
-          error.cause?.code === '42P01' ||
-          error.cause?.message?.includes('does not exist');
-          
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const errorCode = (error as any)?.code;
+        const errorCause = (error as any)?.cause;
+
+        const isTableMissingError =
+          errorMessage?.includes("does not exist") ||
+          errorMessage?.includes("relation") ||
+          errorCode === "42P01" ||
+          errorCause?.code === "42P01" ||
+          errorCause?.message?.includes("does not exist");
+
         if (isTableMissingError) {
-          console.log('Video tables not found, skipping video queries for single testimony');
+          console.log(
+            "Video tables not found, skipping video queries for single testimony"
+          );
           testimonyVideosResult = [];
         } else {
           throw error;
         }
       }
-      
+
       // Format the response
       const formattedTestimony: Testimony = {
         ...testimony,
-        tags: testimony.tags as string[] || [],
-        pageRange: testimony.pageRange as { start: number; end: number } | undefined,
-        images: testimonyImagesResult.map(img => img.imagePath),
-        videos: testimonyVideosResult.map(vid => ({
+        tags: (testimony.tags as string[]) || [],
+        pageRange: testimony.pageRange as
+          | { start: number; end: number }
+          | undefined,
+        images: testimonyImagesResult.map((img) => img.imagePath),
+        videos: testimonyVideosResult.map((vid) => ({
           id: vid.videoId,
           url: vid.videoUrl,
-          type: vid.videoType as 'youtube' | 'google_drive' | 'vimeo',
+          type: vid.videoType as "youtube" | "google_drive" | "vimeo",
           title: vid.videoTitle || undefined,
           description: vid.videoDescription || undefined,
           thumbnailUrl: vid.videoThumbnailUrl || undefined,
@@ -188,12 +222,12 @@ export async function GET(request: NextRequest) {
           return acc;
         }, {} as { [videoId: string]: string }),
       };
-      
+
       return NextResponse.json(formattedTestimony, { headers });
     } else {
       // Get paginated testimonials with optional filtering
       const offset = (page - 1) * limit;
-      
+
       // Build the base query
       let query = db
         .select({
@@ -214,7 +248,7 @@ export async function GET(request: NextRequest) {
       if (category) {
         query = query.where(eq(testimonies.category, category));
       }
-      
+
       // Add search functionality (basic text search in title, author, content)
       if (search) {
         const searchTerm = `%${search}%`;
@@ -231,11 +265,13 @@ export async function GET(request: NextRequest) {
       const countQuery = db
         .select({ count: sql<number>`count(*)` })
         .from(testimonies);
-      
+
       // Apply same filters to count query
       let finalCountQuery = countQuery;
       if (category) {
-        finalCountQuery = finalCountQuery.where(eq(testimonies.category, category));
+        finalCountQuery = finalCountQuery.where(
+          eq(testimonies.category, category)
+        );
       }
       if (search) {
         const searchTerm = `%${search}%`;
@@ -250,29 +286,26 @@ export async function GET(request: NextRequest) {
 
       // Execute both queries with retry
       const [testimonyResults, totalCountResult] = await Promise.all([
-        retryDbOperation(() => 
-          query
-            .orderBy(testimonies.page)
-            .limit(limit)
-            .offset(offset)
+        retryDbOperation(() =>
+          query.orderBy(testimonies.page).limit(limit).offset(offset)
         ),
-        retryDbOperation(() => finalCountQuery)
+        retryDbOperation(() => finalCountQuery),
       ]);
-      
+
       const totalCount = totalCountResult[0]?.count || 0;
       const totalPages = Math.ceil(totalCount / limit);
       const hasNextPage = page < totalPages;
       const hasPreviousPage = page > 1;
-      
+
       // Get images and videos for all testimonials
-      const testimonyIds = testimonyResults.map(t => t.id);
+      const testimonyIds = testimonyResults.map((t) => t.id);
       let testimonyImagesResults: Array<{
         testimonyId: string | null;
-        imagePath: string; 
+        imagePath: string;
         caption: string | null;
         order: number | null;
       }> = [];
-      
+
       let testimonyVideosResults: Array<{
         testimonyId: string | null;
         videoId: string;
@@ -285,7 +318,7 @@ export async function GET(request: NextRequest) {
         caption: string | null;
         order: number | null;
       }> = [];
-      
+
       if (testimonyIds.length > 0) {
         // Get images
         testimonyImagesResults = await retryDbOperation(() =>
@@ -301,7 +334,7 @@ export async function GET(request: NextRequest) {
             .where(inArray(testimonyImages.testimonyId, testimonyIds))
             .orderBy(testimonyImages.order)
         );
-        
+
         // Get videos (gracefully handle missing tables)
         try {
           testimonyVideosResults = await db
@@ -321,26 +354,37 @@ export async function GET(request: NextRequest) {
             .innerJoin(videos, eq(testimonyVideos.videoId, videos.id))
             .where(inArray(testimonyVideos.testimonyId, testimonyIds))
             .orderBy(testimonyVideos.order);
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Gracefully handle missing video tables (they might not exist in production yet)
-          const isTableMissingError = error.message?.includes('does not exist') || 
-            error.message?.includes('relation') || 
-            error.code === '42P01' ||
-            error.cause?.code === '42P01' ||
-            error.cause?.message?.includes('does not exist');
-            
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const errorCode = (error as any)?.code;
+          const errorCause = (error as any)?.cause;
+
+          const isTableMissingError =
+            errorMessage?.includes("does not exist") ||
+            errorMessage?.includes("relation") ||
+            errorCode === "42P01" ||
+            errorCause?.code === "42P01" ||
+            errorCause?.message?.includes("does not exist");
+
           if (isTableMissingError) {
-            console.log('Video tables not found, skipping video queries for paginated testimonials');
+            console.log(
+              "Video tables not found, skipping video queries for paginated testimonials"
+            );
             testimonyVideosResults = [];
           } else {
             throw error;
           }
         }
       }
-      
+
       // Group images by testimony
-      const testimonyImagesMap = new Map<string, Array<{ path: string; caption: string | null }>>();
-      testimonyImagesResults.forEach(result => {
+      const testimonyImagesMap = new Map<
+        string,
+        Array<{ path: string; caption: string | null }>
+      >();
+      testimonyImagesResults.forEach((result) => {
         if (result.testimonyId) {
           if (!testimonyImagesMap.has(result.testimonyId)) {
             testimonyImagesMap.set(result.testimonyId, []);
@@ -351,20 +395,23 @@ export async function GET(request: NextRequest) {
           });
         }
       });
-      
+
       // Group videos by testimony
-      const testimonyVideosMap = new Map<string, Array<{
-        id: string;
-        url: string;
-        type: string;
-        title: string | null;
-        description: string | null;
-        thumbnailUrl: string | null;
-        duration: number | null;
-        caption: string | null;
-      }>>();
-      
-      testimonyVideosResults.forEach(result => {
+      const testimonyVideosMap = new Map<
+        string,
+        Array<{
+          id: string;
+          url: string;
+          type: string;
+          title: string | null;
+          description: string | null;
+          thumbnailUrl: string | null;
+          duration: number | null;
+          caption: string | null;
+        }>
+      >();
+
+      testimonyVideosResults.forEach((result) => {
         if (result.testimonyId) {
           if (!testimonyVideosMap.has(result.testimonyId)) {
             testimonyVideosMap.set(result.testimonyId, []);
@@ -381,41 +428,45 @@ export async function GET(request: NextRequest) {
           });
         }
       });
-      
+
       // Combine testimonies with their images and videos
-      const formattedTestimonies: Testimony[] = testimonyResults.map(testimony => {
-        const testimonyImages = testimonyImagesMap.get(testimony.id) || [];
-        const testimonyVideos = testimonyVideosMap.get(testimony.id) || [];
-        
-        return {
-          ...testimony,
-          tags: testimony.tags as string[] || [],
-          pageRange: testimony.pageRange as { start: number; end: number } | undefined,
-          images: testimonyImages.map(img => img.path),
-          videos: testimonyVideos.map(vid => ({
-            id: vid.id,
-            url: vid.url,
-            type: vid.type as 'youtube' | 'google_drive' | 'vimeo',
-            title: vid.title || undefined,
-            description: vid.description || undefined,
-            thumbnailUrl: vid.thumbnailUrl || undefined,
-            duration: vid.duration || undefined,
-          })),
-          imagesCaptions: testimonyImages.reduce((acc, img) => {
-            if (img.caption) {
-              acc[img.path] = img.caption;
-            }
-            return acc;
-          }, {} as { [imagePath: string]: string }),
-          videosCaptions: testimonyVideos.reduce((acc, vid) => {
-            if (vid.caption) {
-              acc[vid.id] = vid.caption;
-            }
-            return acc;
-          }, {} as { [videoId: string]: string }),
-        };
-      });
-      
+      const formattedTestimonies: Testimony[] = testimonyResults.map(
+        (testimony) => {
+          const testimonyImages = testimonyImagesMap.get(testimony.id) || [];
+          const testimonyVideos = testimonyVideosMap.get(testimony.id) || [];
+
+          return {
+            ...testimony,
+            tags: (testimony.tags as string[]) || [],
+            pageRange: testimony.pageRange as
+              | { start: number; end: number }
+              | undefined,
+            images: testimonyImages.map((img) => img.path),
+            videos: testimonyVideos.map((vid) => ({
+              id: vid.id,
+              url: vid.url,
+              type: vid.type as "youtube" | "google_drive" | "vimeo",
+              title: vid.title || undefined,
+              description: vid.description || undefined,
+              thumbnailUrl: vid.thumbnailUrl || undefined,
+              duration: vid.duration || undefined,
+            })),
+            imagesCaptions: testimonyImages.reduce((acc, img) => {
+              if (img.caption) {
+                acc[img.path] = img.caption;
+              }
+              return acc;
+            }, {} as { [imagePath: string]: string }),
+            videosCaptions: testimonyVideos.reduce((acc, vid) => {
+              if (vid.caption) {
+                acc[vid.id] = vid.caption;
+              }
+              return acc;
+            }, {} as { [videoId: string]: string }),
+          };
+        }
+      );
+
       // Return paginated response with metadata
       const response = {
         data: formattedTestimonies,
@@ -426,14 +477,17 @@ export async function GET(request: NextRequest) {
           hasNextPage,
           hasPreviousPage,
           pageSize: limit,
-          totalFetched: formattedTestimonies.length
-        }
+          totalFetched: formattedTestimonies.length,
+        },
       };
 
       return NextResponse.json(response, { headers });
     }
   } catch (error) {
-    console.error('Error reading testimonials:', error);
-    return NextResponse.json({ error: 'Failed to read testimonials' }, { status: 500 });
+    console.error("Error reading testimonials:", error);
+    return NextResponse.json(
+      { error: "Failed to read testimonials" },
+      { status: 500 }
+    );
   }
 }

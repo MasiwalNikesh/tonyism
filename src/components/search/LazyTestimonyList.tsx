@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, Search, Filter, ArrowUp } from 'lucide-react';
-import { testimonySearch, Testimony, PaginatedResponse } from '@/lib/search';
-import TestimonyCard from '@/components/testimony/TestimonyCard';
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Loader2, Search, Filter, ArrowUp } from "lucide-react";
+import { testimonySearch, Testimony } from "@/lib/search";
+import TestimonyCard from "@/components/testimony/TestimonyCard";
 
 interface LazyTestimonyListProps {
   initialSearch?: string;
@@ -13,9 +13,9 @@ interface LazyTestimonyListProps {
 }
 
 export default function LazyTestimonyList({
-  initialSearch = '',
-  initialCategory = '',
-  pageSize = 25
+  initialSearch = "",
+  initialCategory = "",
+  pageSize = 25,
 }: LazyTestimonyListProps) {
   const [testimonies, setTestimonies] = useState<Testimony[]>([]);
   const [loading, setLoading] = useState(true);
@@ -33,59 +33,69 @@ export default function LazyTestimonyList({
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load initial data
-  const loadTestimonies = useCallback(async (
-    page = 1, 
-    searchTerm = search, 
-    categoryFilter = category,
-    append = false
-  ) => {
-    try {
-      if (page === 1) {
-        setLoading(true);
-        setTestimonies([]);
-      } else {
-        setLoadingMore(true);
-      }
-
-      setError(null);
-
-      const result = await testimonySearch.getPaginatedTestimonies(
-        page,
-        pageSize,
-        searchTerm || undefined,
-        categoryFilter || undefined
-      );
-
-      if (result) {
-        const newTestimonies = result.data;
-        
-        if (append && page > 1) {
-          setTestimonies(prev => [...prev, ...newTestimonies]);
+  const loadTestimonies = useCallback(
+    async (
+      page = 1,
+      searchTerm = search,
+      categoryFilter = category,
+      append = false
+    ) => {
+      try {
+        if (page === 1) {
+          setLoading(true);
+          setTestimonies([]);
         } else {
-          setTestimonies(newTestimonies);
+          setLoadingMore(true);
         }
 
-        setHasNextPage(result.pagination.hasNextPage);
-        setTotalCount(result.pagination.totalCount);
-        setCurrentPage(page);
-      } else {
-        setError('Failed to load testimonies. Please try again.');
+        setError(null);
+
+        const result = await testimonySearch.getPaginatedTestimonies(
+          page,
+          pageSize,
+          searchTerm || undefined,
+          categoryFilter || undefined
+        );
+
+        if (result) {
+          const newTestimonies = result.data;
+
+          if (append && page > 1) {
+            setTestimonies((prev) => [...prev, ...newTestimonies]);
+          } else {
+            setTestimonies(newTestimonies);
+          }
+
+          setHasNextPage(result.pagination.hasNextPage);
+          setTotalCount(result.pagination.totalCount);
+          setCurrentPage(page);
+        } else {
+          setError("Failed to load testimonies. Please try again.");
+        }
+      } catch (err) {
+        console.error("Error loading testimonies:", err);
+        setError("Failed to load testimonies. Please try again.");
+      } finally {
+        setLoading(false);
+        setLoadingMore(false);
       }
-    } catch (err) {
-      console.error('Error loading testimonies:', err);
-      setError('Failed to load testimonies. Please try again.');
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [search, category, pageSize]);
+    },
+    [search, category, pageSize]
+  );
 
   // Load more testimonies when intersection observer triggers
   const loadMore = useCallback(() => {
     if (!loadingMore && hasNextPage) {
       loadTestimonies(currentPage + 1, search, category, true);
     }
-  }, [loadTestimonies, currentPage, search, category, loadingMore, hasNextPage]);
+  }, [
+    loadTestimonies,
+    currentPage,
+    search,
+    category,
+    loadingMore,
+    hasNextPage,
+  ]);
 
   // Set up intersection observer for infinite scroll
   useEffect(() => {
@@ -99,7 +109,7 @@ export default function LazyTestimonyList({
           loadMore();
         }
       },
-      { threshold: 0.1, rootMargin: '100px' }
+      { threshold: 0.1, rootMargin: "100px" }
     );
 
     if (loadMoreRef.current) {
@@ -116,7 +126,7 @@ export default function LazyTestimonyList({
   // Handle search with debounce
   const handleSearchChange = (value: string) => {
     setSearch(value);
-    
+
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
     }
@@ -134,7 +144,7 @@ export default function LazyTestimonyList({
 
   // Handle scroll to top
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   // Track scroll for back to top button
@@ -143,14 +153,14 @@ export default function LazyTestimonyList({
       setShowBackToTop(window.scrollY > 1000);
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Initial load
   useEffect(() => {
     loadTestimonies(1, search, category, false);
-  }, []);
+  }, [loadTestimonies, search, category]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -159,7 +169,10 @@ export default function LazyTestimonyList({
         <div className="flex flex-col sm:flex-row gap-4">
           {/* Search Input */}
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Search
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <input
               type="text"
               value={search}
@@ -171,7 +184,10 @@ export default function LazyTestimonyList({
 
           {/* Category Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={20} />
+            <Filter
+              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+              size={20}
+            />
             <select
               value={category}
               onChange={(e) => handleCategoryChange(e.target.value)}
@@ -197,9 +213,9 @@ export default function LazyTestimonyList({
             {(search || category) && (
               <button
                 onClick={() => {
-                  setSearch('');
-                  setCategory('');
-                  loadTestimonies(1, '', '', false);
+                  setSearch("");
+                  setCategory("");
+                  loadTestimonies(1, "", "", false);
                 }}
                 className="text-amber-600 hover:text-amber-700 font-medium"
               >
@@ -228,7 +244,9 @@ export default function LazyTestimonyList({
         <div className="flex flex-col items-center justify-center py-16">
           <Loader2 className="animate-spin text-amber-500 mb-4" size={40} />
           <p className="text-gray-600 text-lg">Loading testimonies...</p>
-          <p className="text-gray-500 text-sm">Please wait while we gather beautiful memories</p>
+          <p className="text-gray-500 text-sm">
+            Please wait while we gather beautiful memories
+          </p>
         </div>
       )}
 
@@ -255,9 +273,13 @@ export default function LazyTestimonyList({
       {!loading && testimonies.length === 0 && !error && (
         <div className="text-center py-16">
           <div className="text-6xl mb-4">📝</div>
-          <h3 className="text-xl font-serif font-bold text-gray-800 mb-2">No testimonies found</h3>
+          <h3 className="text-xl font-serif font-bold text-gray-800 mb-2">
+            No testimonies found
+          </h3>
           <p className="text-gray-600">
-            {search || category ? 'Try adjusting your search or filters' : 'No testimonies available at the moment'}
+            {search || category
+              ? "Try adjusting your search or filters"
+              : "No testimonies available at the moment"}
           </p>
         </div>
       )}

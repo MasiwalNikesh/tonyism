@@ -82,11 +82,11 @@ class TestimonySearch {
   private fuse: Fuse<Testimony> | null = null;
   private allTestimonies: Testimony[] = [];
   private isLoaded: boolean = false;
-  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private cache: Map<string, { data: unknown; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
   // Cache management
-  private getCacheKey(params: Record<string, any>): string {
+  private getCacheKey(params: Record<string, unknown>): string {
     return JSON.stringify(params);
   }
 
@@ -94,11 +94,11 @@ class TestimonySearch {
     return Date.now() - timestamp < this.CACHE_DURATION;
   }
 
-  private setCache(key: string, data: any): void {
+  private setCache(key: string, data: unknown): void {
     this.cache.set(key, { data, timestamp: Date.now() });
   }
 
-  private getCache(key: string): any | null {
+  private getCache(key: string): unknown | null {
     const cached = this.cache.get(key);
     if (cached && this.isValidCache(cached.timestamp)) {
       return cached.data;
@@ -118,7 +118,7 @@ class TestimonySearch {
     
     if (cached) {
       console.log('Using cached testimonies data');
-      this.allTestimonies = cached;
+      this.allTestimonies = cached as Testimony[];
       this.fuse = new Fuse(this.allTestimonies, fuseOptions);
       this.isLoaded = true;
       return;
@@ -159,7 +159,7 @@ class TestimonySearch {
     
     if (cached) {
       console.log('Using cached paginated data');
-      return cached;
+      return cached as PaginatedResponse;
     }
 
     try {
