@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, inArray, or, like, sql } from "drizzle-orm";
+import { eq, inArray, or, like, sql, and } from "drizzle-orm";
 import {
   db,
   testimonies,
@@ -8,16 +8,6 @@ import {
   videos,
   testimonyVideos,
 } from "@/lib/db";
-
-// Type for database errors
-interface DatabaseError {
-  code?: string;
-  message?: string;
-  cause?: {
-    code?: string;
-    message?: string;
-  };
-}
 
 export interface Video {
   id: string;
@@ -172,8 +162,10 @@ export async function GET(request: NextRequest) {
         // Gracefully handle missing video tables (they might not exist in production yet)
         const errorMessage =
           error instanceof Error ? error.message : String(error);
-        const errorCode = (error as any)?.code;
-        const errorCause = (error as any)?.cause;
+        const errorCode = (error as { code?: string })?.code;
+        const errorCause = (
+          error as { cause?: { code?: string; message?: string } }
+        )?.cause;
 
         const isTableMissingError =
           errorMessage?.includes("does not exist") ||
@@ -228,69 +220,93 @@ export async function GET(request: NextRequest) {
       // Get paginated testimonials with optional filtering
       const offset = (page - 1) * limit;
 
-      // Build the base query
-      let query = db
-        .select({
-          id: testimonies.id,
-          title: testimonies.title,
-          author: testimonies.author,
-          relationship: testimonies.relationship,
-          content: testimonies.content,
-          page: testimonies.page,
-          category: testimonies.category,
-          chapter: testimonies.chapter,
-          tags: testimonies.tags,
-          pageRange: testimonies.pageRange,
-        })
-        .from(testimonies);
+      // Execute the main query with retry
+      const testimonyResults = await retryDbOperation(() => {
+        const baseQuery = db
+          .select({
+            id: testimonies.id,
+            title: testimonies.title,
+            author: testimonies.author,
+            relationship: testimonies.relationship,
+            content: testimonies.content,
+            page: testimonies.page,
+            category: testimonies.category,
+            chapter: testimonies.chapter,
+            tags: testimonies.tags,
+            pageRange: testimonies.pageRange,
+          })
+          .from(testimonies);
 
-      // Add filters if provided
-      if (category) {
-        query = query.where(eq(testimonies.category, category));
-      }
+        // Build the complete query in one go
+        let whereCondition = undefined;
 
-      // Add search functionality (basic text search in title, author, content)
-      if (search) {
-        const searchTerm = `%${search}%`;
-        query = query.where(
-          or(
+        if (category && search) {
+          const searchTerm = `%${search}%`;
+          whereCondition = and(
+            eq(testimonies.category, category),
+            or(
+              like(testimonies.title, searchTerm),
+              like(testimonies.author, searchTerm),
+              like(testimonies.content, searchTerm)
+            )
+          );
+        } else if (category) {
+          whereCondition = eq(testimonies.category, category);
+        } else if (search) {
+          const searchTerm = `%${search}%`;
+          whereCondition = or(
             like(testimonies.title, searchTerm),
             like(testimonies.author, searchTerm),
             like(testimonies.content, searchTerm)
-          )
-        );
-      }
+          );
+        }
+
+        if (whereCondition) {
+          return baseQuery
+            .where(whereCondition)
+            .orderBy(testimonies.page)
+            .limit(limit)
+            .offset(offset);
+        } else {
+          return baseQuery
+            .orderBy(testimonies.page)
+            .limit(limit)
+            .offset(offset);
+        }
+      });
 
       // Get total count for pagination info
-      const countQuery = db
-        .select({ count: sql<number>`count(*)` })
-        .from(testimonies);
+      const totalCountResult = await retryDbOperation(() => {
+        const countQuery = db
+          .select({ count: sql<number>`count(*)` })
+          .from(testimonies);
 
-      // Apply same filters to count query
-      let finalCountQuery = countQuery;
-      if (category) {
-        finalCountQuery = finalCountQuery.where(
-          eq(testimonies.category, category)
-        );
-      }
-      if (search) {
-        const searchTerm = `%${search}%`;
-        finalCountQuery = finalCountQuery.where(
-          or(
+        // Apply the same filters as the main query
+        if (category && search) {
+          const searchTerm = `%${search}%`;
+          const whereCondition = and(
+            eq(testimonies.category, category),
+            or(
+              like(testimonies.title, searchTerm),
+              like(testimonies.author, searchTerm),
+              like(testimonies.content, searchTerm)
+            )
+          );
+          return countQuery.where(whereCondition);
+        } else if (category) {
+          return countQuery.where(eq(testimonies.category, category));
+        } else if (search) {
+          const searchTerm = `%${search}%`;
+          const whereCondition = or(
             like(testimonies.title, searchTerm),
             like(testimonies.author, searchTerm),
             like(testimonies.content, searchTerm)
-          )
-        );
-      }
-
-      // Execute both queries with retry
-      const [testimonyResults, totalCountResult] = await Promise.all([
-        retryDbOperation(() =>
-          query.orderBy(testimonies.page).limit(limit).offset(offset)
-        ),
-        retryDbOperation(() => finalCountQuery),
-      ]);
+          );
+          return countQuery.where(whereCondition);
+        } else {
+          return countQuery;
+        }
+      });
 
       const totalCount = totalCountResult[0]?.count || 0;
       const totalPages = Math.ceil(totalCount / limit);
@@ -358,8 +374,10 @@ export async function GET(request: NextRequest) {
           // Gracefully handle missing video tables (they might not exist in production yet)
           const errorMessage =
             error instanceof Error ? error.message : String(error);
-          const errorCode = (error as any)?.code;
-          const errorCause = (error as any)?.cause;
+          const errorCode = (error as { code?: string })?.code;
+          const errorCause = (
+            error as { cause?: { code?: string; message?: string } }
+          )?.cause;
 
           const isTableMissingError =
             errorMessage?.includes("does not exist") ||

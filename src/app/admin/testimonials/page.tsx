@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter } from 'next/navigation';
-import { Testimony } from '@/app/api/admin/testimonials/route';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { Testimony } from "@/app/api/admin/testimonials/route";
 
 interface PaginationData {
   current: number;
@@ -32,46 +32,34 @@ export default function TestimonialsAdmin() {
   const [pagination, setPagination] = useState<PaginationData | null>(null);
   const [metadata, setMetadata] = useState<MetadataResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  
+  const [error, setError] = useState("");
+
   // Filters
-  const [search, setSearch] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('');
-  const [chapterFilter, setChapterFilter] = useState('');
+  const [search, setSearch] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("");
+  const [chapterFilter, setChapterFilter] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   const router = useRouter();
 
-  useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem('adminToken');
-    if (token !== 'admin123') {
-      router.push('/admin');
-      return;
-    }
-    
-    loadMetadata();
-    loadTestimonials();
-  }, [router, currentPage, itemsPerPage, search, categoryFilter, chapterFilter]);
-
   const getAuthHeaders = () => ({
-    'Authorization': `Bearer ${localStorage.getItem('adminToken')}`,
-    'Content-Type': 'application/json',
+    Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
+    "Content-Type": "application/json",
   });
 
   const loadMetadata = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/metadata', {
+      const response = await fetch("/api/admin/metadata", {
         headers: getAuthHeaders(),
       });
-      
+
       if (response.ok) {
         const data = await response.json();
         setMetadata(data);
       }
     } catch (err) {
-      console.error('Failed to load metadata:', err);
+      console.error("Failed to load metadata:", err);
     }
   }, []);
 
@@ -82,24 +70,24 @@ export default function TestimonialsAdmin() {
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
       });
-      
-      if (search) params.append('search', search);
-      if (categoryFilter) params.append('category', categoryFilter);
-      if (chapterFilter) params.append('chapter', chapterFilter);
-      
+
+      if (search) params.append("search", search);
+      if (categoryFilter) params.append("category", categoryFilter);
+      if (chapterFilter) params.append("chapter", chapterFilter);
+
       const response = await fetch(`/api/admin/testimonials?${params}`, {
         headers: getAuthHeaders(),
       });
-      
+
       if (response.ok) {
         const data: TestimonialsResponse = await response.json();
         setTestimonials(data.testimonials);
         setPagination(data.pagination);
       } else {
-        throw new Error('Failed to load testimonials');
+        throw new Error("Failed to load testimonials");
       }
     } catch (err) {
-      setError('Failed to load testimonials');
+      setError("Failed to load testimonials");
       console.error(err);
     } finally {
       setLoading(false);
@@ -107,36 +95,58 @@ export default function TestimonialsAdmin() {
   }, [currentPage, itemsPerPage, search, categoryFilter, chapterFilter]);
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this testimonial?')) {
+    if (!confirm("Are you sure you want to delete this testimonial?")) {
       return;
     }
-    
+
     try {
       const response = await fetch(`/api/admin/testimonials/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
         headers: getAuthHeaders(),
       });
-      
+
       if (response.ok) {
         loadTestimonials(); // Reload the list
       } else {
-        alert('Failed to delete testimonial');
+        alert("Failed to delete testimonial");
       }
     } catch (err) {
-      alert('Failed to delete testimonial');
+      alert("Failed to delete testimonial");
       console.error(err);
     }
   };
 
   const logout = () => {
-    localStorage.removeItem('adminToken');
-    router.push('/admin');
+    localStorage.removeItem("adminToken");
+    router.push("/admin");
   };
 
   const truncateText = (text: string, maxLength: number = 150) => {
     if (text.length <= maxLength) return text;
-    return text.substring(0, maxLength) + '...';
+    return text.substring(0, maxLength) + "...";
   };
+
+  // useEffect must come after all function declarations
+  useEffect(() => {
+    // Check authentication
+    const token = localStorage.getItem("adminToken");
+    if (token !== "admin123") {
+      router.push("/admin");
+      return;
+    }
+
+    loadMetadata();
+    loadTestimonials();
+  }, [
+    router,
+    currentPage,
+    itemsPerPage,
+    search,
+    categoryFilter,
+    chapterFilter,
+    loadMetadata,
+    loadTestimonials,
+  ]);
 
   if (loading) {
     return (
@@ -153,14 +163,16 @@ export default function TestimonialsAdmin() {
         <div className="bg-white shadow rounded-lg p-6 mb-6">
           <div className="flex justify-between items-center">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">Testimonials Management</h1>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Testimonials Management
+              </h1>
               <p className="text-gray-600">
                 {metadata && `${metadata.totalTestimonials} total testimonials`}
               </p>
             </div>
             <div className="flex space-x-4">
               <button
-                onClick={() => router.push('/admin/testimonials/new')}
+                onClick={() => router.push("/admin/testimonials/new")}
                 className="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
               >
                 Add New Testimonial
@@ -200,8 +212,10 @@ export default function TestimonialsAdmin() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
               >
                 <option value="">All Categories</option>
-                {metadata?.categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+                {metadata?.categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
                 ))}
               </select>
             </div>
@@ -215,8 +229,10 @@ export default function TestimonialsAdmin() {
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-black"
               >
                 <option value="">All Chapters</option>
-                {metadata?.chapters.map(chapter => (
-                  <option key={chapter} value={chapter}>{chapter}</option>
+                {metadata?.chapters.map((chapter) => (
+                  <option key={chapter} value={chapter}>
+                    {chapter}
+                  </option>
                 ))}
               </select>
             </div>
@@ -308,7 +324,9 @@ export default function TestimonialsAdmin() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex space-x-2">
                         <button
-                          onClick={() => router.push(`/admin/testimonials/${testimony.id}`)}
+                          onClick={() =>
+                            router.push(`/admin/testimonials/${testimony.id}`)
+                          }
                           className="text-indigo-600 hover:text-indigo-900"
                         >
                           Edit
@@ -350,9 +368,10 @@ export default function TestimonialsAdmin() {
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
                 <p className="text-sm text-gray-700">
-                  Showing page <span className="font-medium">{pagination.current}</span> of{' '}
-                  <span className="font-medium">{pagination.total}</span> 
-                  {' '}({pagination.totalItems} total testimonials)
+                  Showing page{" "}
+                  <span className="font-medium">{pagination.current}</span> of{" "}
+                  <span className="font-medium">{pagination.total}</span> (
+                  {pagination.totalItems} total testimonials)
                 </p>
               </div>
               <div>

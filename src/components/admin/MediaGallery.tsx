@@ -58,10 +58,6 @@ export default function MediaGallery({
   );
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  useEffect(() => {
-    loadImages();
-  }, [currentPage, search, pageFilter]);
-
   const getAuthHeaders = () => ({
     Authorization: `Bearer ${localStorage.getItem("adminToken")}`,
     "Content-Type": "application/json",
@@ -112,6 +108,11 @@ export default function MediaGallery({
       setSelectedImage(image);
     }
   };
+
+  // useEffect must come after all function declarations
+  useEffect(() => {
+    loadImages();
+  }, [currentPage, search, pageFilter, loadImages]);
 
   if (loading) {
     return (
