@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Heart, User, Tag, Calendar, ArrowRight } from "lucide-react";
+import { Heart, User, Tag, Calendar, ArrowRight, Video } from "lucide-react";
 import { Testimony, highlightMatches, truncateContent } from "@/lib/search";
 import { getTestimonyImageSources } from "@/lib/images";
 import { cn } from "@/lib/utils";
@@ -165,6 +165,14 @@ export default function TestimonyCard({
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <Calendar size={14} />
               <span>Page {testimony.page}</span>
+              {testimony.videos && testimony.videos.length > 0 && (
+                <>
+                  <Video size={14} className="text-purple-500" />
+                  <span className="text-purple-600 font-medium">
+                    {testimony.videos.length} video{testimony.videos.length > 1 ? 's' : ''}
+                  </span>
+                </>
+              )}
               <Heart size={14} className="text-red-400" />
             </div>
             

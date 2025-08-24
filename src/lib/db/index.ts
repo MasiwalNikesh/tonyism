@@ -8,8 +8,11 @@ import * as schema from './schema';
 let db: ReturnType<typeof drizzle> | ReturnType<typeof drizzleNeon>;
 
 if (process.env.POSTGRES_URL || process.env.DATABASE_URL) {
-  // Production (Vercel with Neon) - use serverless driver
-  const sql = neon(process.env.POSTGRES_URL || process.env.DATABASE_URL!);
+  // Production (Vercel with Neon) - use serverless driver with improved configuration
+  const sql = neon(process.env.POSTGRES_URL || process.env.DATABASE_URL!, {
+    fetchConnectionCache: true,
+    fullResults: true,
+  });
   db = drizzleNeon(sql, { schema });
 } else {
   // Development - use node-postgres with connection pool
@@ -19,6 +22,9 @@ if (process.env.POSTGRES_URL || process.env.DATABASE_URL) {
     database: process.env.DB_NAME || 'tonyism_db',
     user: process.env.DB_USER || process.env.USER,
     password: process.env.DB_PASSWORD || '',
+    max: 10, // Maximum number of connections
+    idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+    connectionTimeoutMillis: 10000, // Connection timeout
   });
   db = drizzle(pool, { schema });
 }

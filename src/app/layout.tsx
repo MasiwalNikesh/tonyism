@@ -18,6 +18,15 @@ export const metadata: Metadata = {
     default: "Tonyism - Testimonies of Love & Legacy",
     template: "%s | Tonyism"
   },
+  icons: {
+    icon: [
+      { url: '/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    apple: [
+      { url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+    ],
+  },
   description:
     "Discover heartfelt testimonies from family, friends, and colleagues about Tony Batra (1959-2023). Search through memories, stories, and wisdom that celebrate his life and the Tony-ism philosophy of living with joy, generosity, and love.",
   keywords: [

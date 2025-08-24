@@ -1,5 +1,15 @@
 import Fuse from "fuse.js";
 
+export interface Video {
+  id: string;
+  url: string;
+  type: 'youtube' | 'google_drive' | 'vimeo';
+  title?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  duration?: number;
+}
+
 export interface Testimony {
   id: string;
   title: string;
@@ -11,11 +21,13 @@ export interface Testimony {
   tags: string[];
   chapter: string;
   images?: string[]; // Array of image paths from CMS
+  videos?: Video[]; // Array of videos
   pageRange?: {
     start: number;
     end: number;
   };
   imagesCaptions?: { [imagePath: string]: string }; // Custom captions for images
+  videosCaptions?: { [videoId: string]: string }; // Custom captions for videos
 }
 
 export interface SearchFilters {
@@ -50,27 +62,133 @@ const fuseOptions = {
   minMatchCharLength: 2,
 };
 
+// Pagination interface for API responses
+export interface PaginationInfo {
+  currentPage: number;
+  totalPages: number;
+  totalCount: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  pageSize: number;
+  totalFetched: number;
+}
+
+export interface PaginatedResponse {
+  data: Testimony[];
+  pagination: PaginationInfo;
+}
+
 class TestimonySearch {
   private fuse: Fuse<Testimony> | null = null;
   private allTestimonies: Testimony[] = [];
   private isLoaded: boolean = false;
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
-  async loadTestimonies(): Promise<void> {
-    if (this.isLoaded) return;
+  // Cache management
+  private getCacheKey(params: Record<string, any>): string {
+    return JSON.stringify(params);
+  }
+
+  private isValidCache(timestamp: number): boolean {
+    return Date.now() - timestamp < this.CACHE_DURATION;
+  }
+
+  private setCache(key: string, data: any): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  private getCache(key: string): any | null {
+    const cached = this.cache.get(key);
+    if (cached && this.isValidCache(cached.timestamp)) {
+      return cached.data;
+    }
+    if (cached) {
+      this.cache.delete(key); // Remove expired cache
+    }
+    return null;
+  }
+
+  // Load testimonies with pagination (for search and full loading)
+  async loadTestimonies(page: number = 1, limit: number = 1000): Promise<void> {
+    if (this.isLoaded && page === 1 && limit === 1000) return;
+    
+    const cacheKey = this.getCacheKey({ action: 'loadAll', page, limit });
+    const cached = this.getCache(cacheKey);
+    
+    if (cached) {
+      console.log('Using cached testimonies data');
+      this.allTestimonies = cached;
+      this.fuse = new Fuse(this.allTestimonies, fuseOptions);
+      this.isLoaded = true;
+      return;
+    }
     
     try {
       console.log('Loading testimonies from API...');
-      const response = await fetch('/api/testimonials');
+      const response = await fetch(`/api/testimonials?page=${page}&limit=${limit}`);
       if (response.ok) {
-        this.allTestimonies = await response.json();
+        const result = await response.json();
+        // Handle both old and new API response formats
+        const testimonies = result.data || result; // New format has .data, old format is direct array
+        
+        this.allTestimonies = testimonies;
         console.log(`Loaded ${this.allTestimonies.length} testimonies from database`);
         this.fuse = new Fuse(this.allTestimonies, fuseOptions);
         this.isLoaded = true;
+        
+        // Cache the result
+        this.setCache(cacheKey, testimonies);
       } else {
         console.error('Failed to load testimonies from API, status:', response.status);
       }
     } catch (error) {
       console.error('Error loading testimonies:', error);
+    }
+  }
+
+  // Get paginated testimonies directly from API
+  async getPaginatedTestimonies(
+    page: number = 1, 
+    limit: number = 25,
+    search?: string,
+    category?: string
+  ): Promise<PaginatedResponse | null> {
+    const cacheKey = this.getCacheKey({ action: 'paginated', page, limit, search, category });
+    const cached = this.getCache(cacheKey);
+    
+    if (cached) {
+      console.log('Using cached paginated data');
+      return cached;
+    }
+
+    try {
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      if (search) params.append('search', search);
+      if (category) params.append('category', category);
+
+      console.log(`Loading page ${page} with ${limit} testimonies...`);
+      const response = await fetch(`/api/testimonials?${params}`);
+      
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`Loaded ${result.data?.length || 0} testimonies (page ${page})`);
+        
+        // Cache the result
+        this.setCache(cacheKey, result);
+        
+        return result;
+      } else {
+        console.error('Failed to load paginated testimonies from API, status:', response.status);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error loading paginated testimonies:', error);
+      return null;
     }
   }
 

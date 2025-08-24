@@ -11,6 +11,7 @@ import {
   Share2,
   BookOpen,
   Image as ImageIcon,
+  Video as VideoIcon,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -22,6 +23,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import ImageModal from "@/components/ImageModal";
 import RichTextRenderer from "@/components/RichTextRenderer";
+import VideoPlayer from "@/components/testimony/VideoPlayer";
 
 interface TestimonyPageProps {
   params: Promise<{
@@ -297,6 +299,39 @@ export default function TestimonyPage({ params }: TestimonyPageProps) {
                           </p>
                         </div>
                       )}
+                    </motion.div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Video Gallery */}
+            {testimony.videos && testimony.videos.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6, delay: 0.7 }}
+                className="mt-8 pt-6 border-t border-gray-200"
+              >
+                <h3 className="text-lg font-serif font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                  <VideoIcon size={18} />
+                  Video Testimonies
+                </h3>
+                <div className="grid grid-cols-1 gap-6">
+                  {testimony.videos.map((video, index) => (
+                    <motion.div
+                      key={video.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.6, delay: 0.1 * index }}
+                      className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden"
+                    >
+                      <div className="p-4">
+                        <VideoPlayer
+                          video={video}
+                          caption={testimony.videosCaptions?.[video.id]}
+                        />
+                      </div>
                     </motion.div>
                   ))}
                 </div>

@@ -12,9 +12,11 @@ import {
   X,
   Search,
   ChefHat,
-  Baby
+  Baby,
+  Users
 } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 
@@ -61,6 +63,13 @@ const navItems: NavItem[] = [
     icon: Baby,
     color: "purple",
     description: "Children's stories & poems"
+  },
+  {
+    href: "/ngo",
+    label: "NGO",
+    icon: Users,
+    color: "indigo",
+    description: "Tony's charitable legacy"
   },
   {
     href: "/chat",
@@ -131,12 +140,18 @@ export default function MobileNavigation() {
             <div className="flex items-center justify-between h-16">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-full flex items-center justify-center">
-                  <span className="text-white font-serif font-bold text-lg">T</span>
+                <div className="w-10 h-10 rounded-full overflow-hidden shadow-lg border-2 border-amber-200">
+                  <Image
+                    src="/images/logo/TONYism_logo.png"
+                    alt="Tonyism Logo"
+                    width={40}
+                    height={40}
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div>
                   <div className="font-serif font-bold text-xl text-gray-900">Tonyism</div>
-                  <div className="text-xs text-gray-600">Memories & Wisdom</div>
+                  <div className="text-xs text-gray-600">Life & Memories</div>
                 </div>
               </Link>
 
@@ -207,13 +222,22 @@ export default function MobileNavigation() {
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: 0.1 }}
-                className="text-center mb-8"
+                className="text-center mb-8 flex flex-col items-center"
               >
+                <div className="w-20 h-20 rounded-full overflow-hidden shadow-xl border-4 border-amber-300 mb-4">
+                  <Image
+                    src="/images/logo/TONYism_logo.png"
+                    alt="Tonyism Logo"
+                    width={80}
+                    height={80}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
                 <h1 className="text-4xl font-serif font-bold text-amber-800 mb-2">
                   Tonyism
                 </h1>
                 <p className="text-amber-600 italic">
-                  Memories, Stories & Legacy
+                  Life & Memories
                 </p>
               </motion.div>
 
@@ -248,6 +272,7 @@ export default function MobileNavigation() {
                               : item.color === 'orange' ? "bg-orange-100 text-orange-600"
                               : item.color === 'purple' ? "bg-purple-100 text-purple-600"
                               : item.color === 'blue' ? "bg-blue-100 text-blue-600"
+                              : item.color === 'indigo' ? "bg-indigo-100 text-indigo-600"
                               : "bg-green-100 text-green-600"
                             : "bg-gray-100 text-gray-600"
                         )}>

@@ -2,7 +2,7 @@
 
 import { motion } from "framer-motion";
 import { Heart, Users, Search, Sparkles } from "lucide-react";
-import SearchInterface from "@/components/search/SearchInterface";
+import LazyTestimonyList from "@/components/search/LazyTestimonyList";
 import TestimonyCard from "@/components/testimony/TestimonyCard";
 import { testimonySearch, Testimony } from "@/lib/search";
 import Link from "next/link";
@@ -70,6 +70,35 @@ export default function TestimoniesPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-red-50">
+      {/* Loading Animation */}
+      {isLoading && (
+        <>
+          {/* Loading Bar */}
+          <div className="fixed top-0 left-0 right-0 z-50">
+            <motion.div
+              className="h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-red-500"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 2, ease: "easeInOut" }}
+            />
+          </div>
+          
+          {/* Central Loading Message */}
+          <div className="fixed inset-0 bg-white/80 backdrop-blur-sm z-40 flex items-center justify-center">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5 }}
+              className="text-center"
+            >
+              <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-amber-800 font-serif text-lg">Loading testimonies...</p>
+              <p className="text-amber-600 text-sm mt-2">Please wait while we gather all the beautiful memories</p>
+            </motion.div>
+          </div>
+        </>
+      )}
+
       {/* Hero Section */}
       <div className="bg-white/80 backdrop-blur-sm border-b border-amber-200">
         <div className="max-w-7xl mx-auto px-4 py-12 text-center">
@@ -186,13 +215,13 @@ export default function TestimoniesPage() {
           </div>
         </motion.section>
 
-        {/* Search Interface */}
+        {/* Lazy Loading Testimony List */}
         <motion.section
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.4 }}
         >
-          <SearchInterface />
+          <LazyTestimonyList pageSize={25} />
         </motion.section>
       </div>
     </div>
