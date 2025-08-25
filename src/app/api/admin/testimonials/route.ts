@@ -18,6 +18,15 @@ export interface Testimony {
     end: number;
   };
   imagesCaptions?: { [imagePath: string]: string }; // Custom captions for images
+  videos?: Array<{
+    url: string;
+    type: string;
+    title?: string;
+    description?: string;
+    caption?: string;
+    order: number;
+  }>; // Array of video data
+  videosCaptions?: { [videoId: string]: string }; // Custom captions for videos
 }
 
 // Simple admin authentication check

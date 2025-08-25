@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 interface BookCoverProps {
   onOpenBook: () => void;
@@ -12,7 +13,8 @@ export default function BookCover({ onOpenBook }: BookCoverProps) {
   const [isHovered, setIsHovered] = useState(false);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-orange-50 to-red-50 p-4 relative">
+
       <motion.div
         initial={{ opacity: 0, scale: 0.8 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -40,81 +42,106 @@ export default function BookCover({ onOpenBook }: BookCoverProps) {
           <div className="absolute left-1/2 top-0 w-1 h-full bg-gradient-to-b from-amber-600 to-amber-800 transform -translate-x-1/2 shadow-inner" />
 
           {/* Main Content */}
-          <div className="relative z-10 flex flex-col items-center justify-center h-full p-8 text-center">
+          <div className="relative z-10 flex flex-col items-center justify-between h-full p-6 text-center">
             {/* Decorative Border */}
             <div className="absolute inset-4 border-2 border-amber-400 rounded opacity-30" />
 
-            {/* Title */}
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5, duration: 1 }}
-              className="text-6xl md:text-7xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 mb-4"
-            >
-              Tonyism
-            </motion.h1>
-
-            {/* Subtitle */}
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.8, duration: 1 }}
-              className="text-xl md:text-2xl font-serif text-amber-200 mb-8 italic"
-            >
-              Babu Moshai... zindagi badi honi chahiye, lambi nahin!
-            </motion.p>
-
-            {/* Author */}
+            {/* Tony's Logo - Top Section */}
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.1, duration: 1 }}
-              className="text-lg md:text-xl font-serif text-amber-300 mb-12"
+              transition={{ delay: 0.3, duration: 1.2 }}
+              className="flex-shrink-0 mt-4"
             >
-              <p>In Memory of</p>
-              <p className="text-2xl md:text-3xl font-bold text-amber-200 mt-2">
-                Tony Batra
-              </p>
-              <p className="text-sm text-amber-400 mt-2">1959 - 2025</p>
+              <div className="relative w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-xl border-4 border-amber-300">
+                <Image
+                  src="/images/logo/TONYism_logo.png"
+                  alt="Tony Batra"
+                  fill
+                  className="object-cover"
+                  priority
+                />
+              </div>
             </motion.div>
 
-            {/* Decorative Elements */}
-            <motion.div
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 1.4, duration: 0.8 }}
-              className="flex space-x-8 mb-8"
-            >
-              <div className="w-2 h-2 bg-amber-300 rounded-full" />
-              <div className="w-2 h-2 bg-amber-300 rounded-full" />
-              <div className="w-2 h-2 bg-amber-300 rounded-full" />
-            </motion.div>
+            {/* Central Content */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+              {/* Title */}
+              <motion.h1
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5, duration: 1 }}
+                className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-200 mb-4"
+              >
+                Tonyism
+              </motion.h1>
 
-            {/* Open Book Button */}
-            <motion.button
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1.7, duration: 1 }}
-              whileHover={{
-                scale: 1.05,
-                boxShadow: "0 10px 25px rgba(217, 119, 6, 0.3)",
-              }}
-              whileTap={{ scale: 0.95 }}
-              onClick={onOpenBook}
-              className={cn(
-                "relative z-20 cursor-pointer",
-                "px-8 py-4 bg-gradient-to-r from-amber-600 to-amber-700",
-                "text-white font-serif text-lg font-semibold",
-                "rounded-lg shadow-lg border-2 border-amber-500",
-                "transform transition-all duration-300",
-                "hover:from-amber-500 hover:to-amber-600",
-                "focus:outline-none focus:ring-4 focus:ring-amber-300 focus:ring-opacity-50",
-                "active:scale-95"
-              )}
-              style={{ pointerEvents: 'auto' }}
-            >
-              {isHovered ? "Open Book" : "Begin Reading"}
-            </motion.button>
+              {/* Subtitle */}
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8, duration: 1 }}
+                className="text-lg md:text-xl lg:text-2xl font-serif text-amber-200 mb-6 italic"
+              >
+                Babu Moshai... zindagi badi honi chahiye, lambi nahin!
+              </motion.p>
+
+              {/* Author */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.1, duration: 1 }}
+                className="text-base md:text-lg lg:text-xl font-serif text-amber-300"
+              >
+                <p className="mb-2">In Memory of</p>
+                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-amber-200 mb-2">
+                  Tony Batra
+                </p>
+                <p className="text-sm md:text-base text-amber-400 mb-2">(Shri Gajendar Kumar Batra)</p>
+                <p className="text-xs md:text-sm text-amber-400">1959 - 2025</p>
+              </motion.div>
+            </div>
+
+            {/* Bottom Section - Decorative Elements and Button */}
+            <div className="flex-shrink-0 flex flex-col items-center mb-4">
+              {/* Decorative Elements */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 1.4, duration: 0.8 }}
+                className="flex space-x-4 mb-6"
+              >
+                <div className="w-2 h-2 bg-amber-300 rounded-full" />
+                <div className="w-2 h-2 bg-amber-300 rounded-full" />
+                <div className="w-2 h-2 bg-amber-300 rounded-full" />
+              </motion.div>
+
+              {/* Open Book Button */}
+              <motion.button
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.7, duration: 1 }}
+                whileHover={{
+                  scale: 1.05,
+                  boxShadow: "0 10px 25px rgba(217, 119, 6, 0.3)",
+                }}
+                whileTap={{ scale: 0.95 }}
+                onClick={onOpenBook}
+                className={cn(
+                  "relative z-20 cursor-pointer",
+                  "px-6 py-3 bg-gradient-to-r from-amber-600 to-amber-700",
+                  "text-white font-serif text-base md:text-lg font-semibold",
+                  "rounded-lg shadow-lg border-2 border-amber-500",
+                  "transform transition-all duration-300",
+                  "hover:from-amber-500 hover:to-amber-600",
+                  "focus:outline-none focus:ring-4 focus:ring-amber-300 focus:ring-opacity-50",
+                  "active:scale-95"
+                )}
+                style={{ pointerEvents: 'auto' }}
+              >
+                {isHovered ? "Open Book" : "Begin Reading"}
+              </motion.button>
+            </div>
           </div>
 
           {/* Page Turn Effect */}

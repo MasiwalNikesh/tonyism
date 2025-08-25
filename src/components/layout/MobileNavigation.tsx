@@ -147,6 +147,8 @@ export default function MobileNavigation() {
                     width={40}
                     height={40}
                     className="w-full h-full object-cover"
+                    priority
+                    unoptimized
                   />
                 </div>
                 <div>
@@ -231,6 +233,8 @@ export default function MobileNavigation() {
                     width={80}
                     height={80}
                     className="w-full h-full object-cover"
+                    priority
+                    unoptimized
                   />
                 </div>
                 <h1 className="text-4xl font-serif font-bold text-amber-800 mb-2">

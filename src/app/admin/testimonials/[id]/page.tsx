@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Testimony } from "@/app/api/admin/testimonials/route";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import MediaGallery from "@/components/admin/MediaGallery";
+import VideoManager from "@/components/admin/VideoManager";
 import Image from "next/image";
 
 interface MetadataResponse {
@@ -284,6 +285,8 @@ export default function EditTestimonial({
         images: [],
         pageRange: { start: 1, end: 1 },
         imagesCaptions: {},
+        videos: [],
+        videosCaptions: {},
       });
       setLoading(false);
     }
@@ -788,6 +791,12 @@ export default function EditTestimonial({
                 </div>
               </div>
             )}
+
+            {/* Videos */}
+            <VideoManager
+              videos={testimony.videos || []}
+              onVideosChange={(videos) => updateField("videos", videos)}
+            />
 
             {/* Submit Buttons */}
             <div className="flex justify-end space-x-4 pt-6 border-t">

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { eq } from 'drizzle-orm';
-import { db, testimonies, images, testimonyImages } from '@/lib/db';
+import { db, testimonies, images, testimonyImages, videos, testimonyVideos } from '@/lib/db';
 import { Testimony } from '../route';
 
 // Simple admin authentication check
@@ -59,6 +59,22 @@ export async function GET(
       .where(eq(testimonyImages.testimonyId, id))
       .orderBy(testimonyImages.order);
     
+    // Get associated videos
+    const testimonyVideosResult = await db
+      .select({
+        videoId: videos.id,
+        url: videos.url,
+        type: videos.type,
+        title: videos.title,
+        description: videos.description,
+        caption: testimonyVideos.caption,
+        order: testimonyVideos.order,
+      })
+      .from(testimonyVideos)
+      .innerJoin(videos, eq(testimonyVideos.videoId, videos.id))
+      .where(eq(testimonyVideos.testimonyId, id))
+      .orderBy(testimonyVideos.order);
+    
     // Format the response
     const formattedTestimony: Testimony = {
       ...testimony,
@@ -71,6 +87,20 @@ export async function GET(
         }
         return acc;
       }, {} as { [imagePath: string]: string }),
+      videos: testimonyVideosResult.map(video => ({
+        url: video.url,
+        type: video.type,
+        title: video.title || undefined,
+        description: video.description || undefined,
+        caption: video.caption || undefined,
+        order: video.order || 0,
+      })),
+      videosCaptions: testimonyVideosResult.reduce((acc, video) => {
+        if (video.caption) {
+          acc[video.videoId] = video.caption;
+        }
+        return acc;
+      }, {} as { [videoId: string]: string }),
     };
     
     return NextResponse.json(formattedTestimony);
@@ -129,6 +159,10 @@ export async function PUT(
     await db.delete(testimonyImages)
       .where(eq(testimonyImages.testimonyId, id));
     
+    // Delete existing video relationships  
+    await db.delete(testimonyVideos)
+      .where(eq(testimonyVideos.testimonyId, id));
+    
     // Handle images if provided
     if (updatedTestimony.images && updatedTestimony.images.length > 0) {
       for (let i = 0; i < updatedTestimony.images.length; i++) {
@@ -163,6 +197,53 @@ export async function PUT(
           imageId,
           caption,
           order: i,
+        });
+      }
+    }
+    
+    // Handle videos if provided
+    if (updatedTestimony.videos && updatedTestimony.videos.length > 0) {
+      for (let i = 0; i < updatedTestimony.videos.length; i++) {
+        const videoData = updatedTestimony.videos[i];
+        
+        // Get or create video
+        const videoResult = await db
+          .select({ id: videos.id })
+          .from(videos)
+          .where(eq(videos.url, videoData.url))
+          .limit(1);
+        
+        let videoId: string;
+        
+        if (videoResult.length === 0) {
+          // Create new video record
+          const newVideos = await db.insert(videos).values({
+            url: videoData.url,
+            type: videoData.type,
+            title: videoData.title || null,
+            description: videoData.description || null,
+          }).returning();
+          const newVideo = newVideos[0];
+          videoId = newVideo.id;
+        } else {
+          videoId = videoResult[0].id;
+          
+          // Update existing video with new metadata
+          await db.update(videos)
+            .set({
+              type: videoData.type,
+              title: videoData.title || null,
+              description: videoData.description || null,
+            })
+            .where(eq(videos.id, videoId));
+        }
+        
+        // Link video to testimony
+        await db.insert(testimonyVideos).values({
+          testimonyId: id,
+          videoId,
+          caption: videoData.caption || null,
+          order: videoData.order,
         });
       }
     }
